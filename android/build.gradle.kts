@@ -2,6 +2,9 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // FFmpeg Kit repository for video processing
+        maven { url = uri("https://github.com/AIO-Starter/ffmpeg-kit/raw/main/android/maven") }
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

@@ -49,6 +49,9 @@ dependencies:
   
   cupertino_icons: ^1.0.2
   pedometer: ^4.0.1
+  
+  # Image Processing for video slideshow
+  image: ^4.1.7
 
 dev_dependencies:
   flutter_test:

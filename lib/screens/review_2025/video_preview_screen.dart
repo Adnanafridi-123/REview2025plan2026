@@ -47,14 +47,12 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
   late AnimationController _rotateController;
   late AnimationController _blurController;
   
-  late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
-  late Animation<double> _kenBurnsAnimation;
   late Animation<double> _glowAnimation;
   late Animation<double> _particleAnimation;
   late Animation<Offset> _slideAnimation;
-  late Animation<double> _rotateAnimation;
   late Animation<double> _blurAnimation;
+  // Unused animations removed for cleaner code
   
   List<String> _imagePaths = [];
   
@@ -82,31 +80,25 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
   }
 
   void _initializeAnimations() {
-    // Scale animation (Ken Burns zoom effect) - Enhanced
+    // Scale animation controller (kept for compatibility, no zoom)
     _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 3500),
+      duration: const Duration(milliseconds: 4000),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
-      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOutCubic),
-    );
     
-    // Fade animation for smooth transitions - Enhanced
+    // Fade animation for smooth transitions
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeOutQuart),
     );
     
-    // Ken Burns pan effect - Enhanced
+    // Ken Burns controller (kept for compatibility, no pan)
     _kenBurnsController = AnimationController(
-      duration: const Duration(milliseconds: 4500),
+      duration: const Duration(milliseconds: 5000),
       vsync: this,
-    );
-    _kenBurnsAnimation = Tween<double>(begin: -0.08, end: 0.08).animate(
-      CurvedAnimation(parent: _kenBurnsController, curve: Curves.easeInOutSine),
     );
     
     // Glow pulse animation
@@ -135,13 +127,10 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
     
-    // NEW: Rotate animation for 3D-like effects
+    // Rotate controller (kept for compatibility)
     _rotateController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
-    );
-    _rotateAnimation = Tween<double>(begin: 0.05, end: 0.0).animate(
-      CurvedAnimation(parent: _rotateController, curve: Curves.easeOutBack),
     );
     
     // NEW: Blur animation for dream-like transitions
@@ -175,46 +164,46 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
     switch (styleName.toLowerCase()) {
       case 'cinematic':
         return {
-          'overlayColor': Colors.black.withValues(alpha: 0.3),
+          'overlayColor': Colors.black.withValues(alpha: 0.2),
           'glowColor': const Color(0xFF8E2DE2),
           'particleColor': Colors.white,
-          'vignetteIntensity': 0.6,
+          'vignetteIntensity': 0.4,
           'filmGrain': false,
           'letterbox': true,
         };
       case 'epic':
         return {
-          'overlayColor': Colors.deepOrange.withValues(alpha: 0.2),
+          'overlayColor': Colors.deepOrange.withValues(alpha: 0.15),
           'glowColor': const Color(0xFFFF6B6B),
           'particleColor': Colors.orange,
-          'vignetteIntensity': 0.7,
+          'vignetteIntensity': 0.5,
           'filmGrain': false,
           'letterbox': true,
         };
       case 'romantic':
         return {
-          'overlayColor': Colors.pink.withValues(alpha: 0.15),
+          'overlayColor': Colors.pink.withValues(alpha: 0.1),
           'glowColor': const Color(0xFFFF6B8A),
           'particleColor': Colors.pink.shade200,
-          'vignetteIntensity': 0.4,
+          'vignetteIntensity': 0.3,
           'filmGrain': false,
           'letterbox': false,
         };
       case 'vintage':
         return {
-          'overlayColor': const Color(0xFFD4A574).withValues(alpha: 0.3),
+          'overlayColor': const Color(0xFFD4A574).withValues(alpha: 0.2),
           'glowColor': const Color(0xFFB8860B),
           'particleColor': const Color(0xFFF5DEB3),
-          'vignetteIntensity': 0.8,
+          'vignetteIntensity': 0.5,
           'filmGrain': true,
           'letterbox': false,
         };
       case 'neon':
         return {
-          'overlayColor': Colors.purple.withValues(alpha: 0.2),
+          'overlayColor': Colors.purple.withValues(alpha: 0.15),
           'glowColor': const Color(0xFF00F5FF),
           'particleColor': const Color(0xFFFF00FF),
-          'vignetteIntensity': 0.5,
+          'vignetteIntensity': 0.3,
           'filmGrain': false,
           'letterbox': false,
         };
@@ -223,16 +212,62 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
           'overlayColor': Colors.transparent,
           'glowColor': const Color(0xFFFFD700),
           'particleColor': Colors.yellow,
+          'vignetteIntensity': 0.2,
+          'filmGrain': false,
+          'letterbox': false,
+        };
+      // NEW 5 STYLES
+      case 'wedding':
+        return {
+          'overlayColor': Colors.white.withValues(alpha: 0.1),
+          'glowColor': const Color(0xFFF8BBD9),
+          'particleColor': Colors.white,
+          'vignetteIntensity': 0.25,
+          'filmGrain': false,
+          'letterbox': false,
+        };
+      case 'birthday':
+        return {
+          'overlayColor': Colors.pink.withValues(alpha: 0.1),
+          'glowColor': const Color(0xFFFF4081),
+          'particleColor': Colors.yellow,
+          'vignetteIntensity': 0.2,
+          'filmGrain': false,
+          'letterbox': false,
+        };
+      case 'family':
+        return {
+          'overlayColor': Colors.brown.withValues(alpha: 0.1),
+          'glowColor': const Color(0xFF795548),
+          'particleColor': const Color(0xFFD7CCC8),
+          'vignetteIntensity': 0.35,
+          'filmGrain': false,
+          'letterbox': false,
+        };
+      case 'dosti':
+        return {
+          'overlayColor': Colors.cyan.withValues(alpha: 0.1),
+          'glowColor': const Color(0xFF00BCD4),
+          'particleColor': Colors.lightBlue,
+          'vignetteIntensity': 0.2,
+          'filmGrain': false,
+          'letterbox': false,
+        };
+      case 'islamic':
+        return {
+          'overlayColor': Colors.green.withValues(alpha: 0.1),
+          'glowColor': const Color(0xFF4CAF50),
+          'particleColor': const Color(0xFFC8E6C9),
           'vignetteIntensity': 0.3,
           'filmGrain': false,
           'letterbox': false,
         };
       default:
         return {
-          'overlayColor': Colors.black.withValues(alpha: 0.2),
+          'overlayColor': Colors.black.withValues(alpha: 0.15),
           'glowColor': const Color(0xFF667EEA),
           'particleColor': Colors.white,
-          'vignetteIntensity': 0.5,
+          'vignetteIntensity': 0.3,
           'filmGrain': false,
           'letterbox': false,
         };
@@ -355,18 +390,37 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
     }
   }
 
-  // ========== DIRECT SAVE FUNCTION ==========
+  // ========== SAVE VIDEO AS MP4 ==========
   Future<void> _saveDirectly() async {
     if (_isSaving) return;
     
     setState(() {
       _isSaving = true;
-      _saveMessage = 'Preparing...';
+      _saveMessage = 'Preparing video...';
     });
     
     _pausePreview();
     
     try {
+      // Check if this is a real video (MP4)
+      if (widget.video.isRealVideo && widget.video.filePath.endsWith('.mp4')) {
+        // Save actual video file
+        final result = await VideoGeneratorService.saveVideoToDownloads(
+          widget.video,
+          onProgress: (progress, status) {
+            if (mounted) {
+              setState(() {
+                _saveMessage = status;
+              });
+            }
+          },
+        );
+        
+        _showSaveResult(result.success, result.message);
+        return;
+      }
+      
+      // Fallback: Save as images if not a real video
       final saveDir = await _getDownloadFolder();
       
       if (saveDir == null) {
@@ -586,81 +640,59 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
 
     return AnimatedBuilder(
       animation: Listenable.merge([
-        _scaleAnimation, 
         _fadeAnimation, 
-        _kenBurnsAnimation,
         _slideAnimation,
-        _rotateAnimation,
         _blurAnimation,
       ]),
       builder: (context, child) {
         Widget imageWidget = _buildImage(_imagePaths[_currentImageIndex]);
         
-        // Apply blur effect if active
-        if (_blurAnimation.value > 0.1) {
+        // Apply subtle blur effect during transitions only
+        if (_blurAnimation.value > 0.5) {
           imageWidget = ImageFiltered(
             imageFilter: ImageFilter.blur(
-              sigmaX: _blurAnimation.value,
-              sigmaY: _blurAnimation.value,
+              sigmaX: _blurAnimation.value * 0.5,
+              sigmaY: _blurAnimation.value * 0.5,
             ),
             child: imageWidget,
           );
         }
         
-        return Transform.scale(
-          scale: _scaleAnimation.value,
-          child: Transform.translate(
-            offset: Offset(
-              _kenBurnsAnimation.value * 50 + _slideAnimation.value.dx * MediaQuery.of(context).size.width * 0.3,
-              _kenBurnsAnimation.value * 30,
-            ),
-            child: Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.001) // perspective
-                ..rotateY(_rotateAnimation.value),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 800),
-                transitionBuilder: (Widget child, Animation<double> animation) {
-                  // Choose transition based on current type
-                  switch (_transitionType % 4) {
-                    case 0:
-                      return FadeTransition(
-                        opacity: animation,
-                        child: ScaleTransition(
-                          scale: Tween<double>(begin: 0.95, end: 1.0).animate(animation),
-                          child: child,
-                        ),
-                      );
-                    case 1:
-                      return SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0.1, 0),
-                          end: Offset.zero,
-                        ).animate(CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutCubic,
-                        )),
-                        child: FadeTransition(opacity: animation, child: child),
-                      );
-                    case 2:
-                      return RotationTransition(
-                        turns: Tween<double>(begin: 0.02, end: 0.0).animate(animation),
-                        child: FadeTransition(opacity: animation, child: child),
-                      );
-                    default:
-                      return FadeTransition(
-                        opacity: animation,
-                        child: child,
-                      );
-                  }
-                },
-                child: Container(
-                  key: ValueKey(_currentImageIndex),
-                  child: imageWidget,
-                ),
-              ),
-            ),
+        // SIMPLIFIED - NO ZOOM, NO PAN - Clear picture visibility
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 900),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            // SIMPLE, CLEAN transitions only - pictures perfectly visible
+            switch (_transitionType % 3) {
+              case 0:
+                // Smooth fade transition
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              case 1:
+                // Gentle slide from right
+                return SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.08, 0),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  )),
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              default:
+                // Simple crossfade
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+            }
+          },
+          child: Container(
+            key: ValueKey(_currentImageIndex),
+            child: imageWidget,
           ),
         );
       },

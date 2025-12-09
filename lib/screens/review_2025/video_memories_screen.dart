@@ -55,16 +55,16 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
 
-  // Premium Video Styles with descriptions and effects
+  // Premium Video Styles with descriptions and effects - 15 BEST STYLES
   final List<Map<String, dynamic>> _videoStyles = [
     {
       'name': 'Cinematic',
       'icon': Icons.movie_filter,
       'color': const Color(0xFF8E2DE2),
       'gradient': [const Color(0xFF8E2DE2), const Color(0xFF4A00E0)],
-      'description': 'Hollywood-style transitions',
+      'description': 'Hollywood-style look',
       'emoji': '🎬',
-      'effects': ['Ken Burns', 'Fade', 'Zoom'],
+      'effects': ['Letterbox', 'Vignette', 'Color Grade'],
     },
     {
       'name': 'Epic',
@@ -73,7 +73,7 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
       'gradient': [const Color(0xFFFF6B6B), const Color(0xFFFF8E53)],
       'description': 'Dramatic & powerful',
       'emoji': '🔥',
-      'effects': ['Zoom Burst', 'Flash', 'Shake'],
+      'effects': ['High Contrast', 'Deep Vignette', 'Bold Colors'],
     },
     {
       'name': 'Romantic',
@@ -82,7 +82,7 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
       'gradient': [const Color(0xFFFF6B8A), const Color(0xFFFF8E8E)],
       'description': 'Soft & dreamy vibes',
       'emoji': '💕',
-      'effects': ['Soft Blur', 'Hearts', 'Glow'],
+      'effects': ['Soft Glow', 'Warm Tones', 'Hearts'],
     },
     {
       'name': 'Vintage',
@@ -100,7 +100,7 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
       'gradient': [const Color(0xFF00F5FF), const Color(0xFFFF00FF)],
       'description': 'Vibrant neon glow',
       'emoji': '⚡',
-      'effects': ['Glow', 'Color Shift', 'Strobe'],
+      'effects': ['Saturation Boost', 'Glow', 'Vibrant'],
     },
     {
       'name': 'Minimal',
@@ -109,7 +109,7 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
       'gradient': [const Color(0xFF4ECDC4), const Color(0xFF44A08D)],
       'description': 'Clean & elegant',
       'emoji': '✨',
-      'effects': ['Fade', 'Slide', 'Clean Cut'],
+      'effects': ['Clean', 'Simple', 'No Effects'],
     },
     {
       'name': 'Party',
@@ -118,7 +118,7 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
       'gradient': [const Color(0xFFFFD700), const Color(0xFFFF8C00)],
       'description': 'Fun & energetic',
       'emoji': '🎉',
-      'effects': ['Confetti', 'Bounce', 'Flash'],
+      'effects': ['Bright', 'Colorful', 'Festive'],
     },
     {
       'name': 'Nature',
@@ -127,7 +127,7 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
       'gradient': [const Color(0xFF2ECC71), const Color(0xFF27AE60)],
       'description': 'Calm & peaceful',
       'emoji': '🌿',
-      'effects': ['Leaf Fall', 'Sunbeam', 'Flow'],
+      'effects': ['Green Tint', 'Soft Focus', 'Natural'],
     },
     {
       'name': 'Travel',
@@ -136,7 +136,7 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
       'gradient': [const Color(0xFF3498DB), const Color(0xFF2980B9)],
       'description': 'Adventure awaits',
       'emoji': '✈️',
-      'effects': ['Map Pin', 'Compass', 'Journey'],
+      'effects': ['Warm Look', 'Adventurous', 'Bold'],
     },
     {
       'name': 'Story',
@@ -145,7 +145,53 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
       'gradient': [const Color(0xFF9B59B6), const Color(0xFF8E44AD)],
       'description': 'Tell your story',
       'emoji': '📖',
-      'effects': ['Page Turn', 'Typewriter', 'Narrative'],
+      'effects': ['Letterbox', 'Narrative', 'Cinematic'],
+    },
+    // NEW 5 STYLES ADDED
+    {
+      'name': 'Wedding',
+      'icon': Icons.diamond,
+      'color': const Color(0xFFF8BBD9),
+      'gradient': [const Color(0xFFF8BBD9), const Color(0xFFE1BEE7)],
+      'description': 'Shaadi ki yaadein',
+      'emoji': '💒',
+      'effects': ['Soft White', 'Elegant', 'Golden Glow'],
+    },
+    {
+      'name': 'Birthday',
+      'icon': Icons.cake,
+      'color': const Color(0xFFFF4081),
+      'gradient': [const Color(0xFFFF4081), const Color(0xFFE040FB)],
+      'description': 'Birthday celebration',
+      'emoji': '🎂',
+      'effects': ['Colorful', 'Festive', 'Party Vibes'],
+    },
+    {
+      'name': 'Family',
+      'icon': Icons.family_restroom,
+      'color': const Color(0xFF795548),
+      'gradient': [const Color(0xFF795548), const Color(0xFF5D4037)],
+      'description': 'Ghar ki yaadein',
+      'emoji': '👨‍👩‍👧‍👦',
+      'effects': ['Warm', 'Nostalgic', 'Cozy'],
+    },
+    {
+      'name': 'Dosti',
+      'icon': Icons.people,
+      'color': const Color(0xFF00BCD4),
+      'gradient': [const Color(0xFF00BCD4), const Color(0xFF0097A7)],
+      'description': 'Dosti ke pal',
+      'emoji': '🤝',
+      'effects': ['Fun', 'Energetic', 'Bright'],
+    },
+    {
+      'name': 'Islamic',
+      'icon': Icons.mosque,
+      'color': const Color(0xFF4CAF50),
+      'gradient': [const Color(0xFF4CAF50), const Color(0xFF2E7D32)],
+      'description': 'Deeni yaadein',
+      'emoji': '🕌',
+      'effects': ['Peaceful', 'Elegant', 'Green Tones'],
     },
   ];
 
