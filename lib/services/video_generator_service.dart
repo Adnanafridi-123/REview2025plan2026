@@ -569,12 +569,11 @@ class VideoGeneratorService {
     }
   }
 
-  /// Get all photos from MediaService
+  /// Get all photos from MediaService (without screenshots)
   static List<String> getAllMediaPaths() {
     try {
       final photos = MediaService.getAllPhotos();
       final videos = MediaService.getAllVideos();
-      final screenshots = MediaService.getAllScreenshots();
       
       List<String> paths = [];
       
@@ -589,12 +588,6 @@ class VideoGeneratorService {
           paths.add(video.thumbnailPath!);
         } else if (video.path.isNotEmpty) {
           paths.add(video.path);
-        }
-      }
-      
-      for (var screenshot in screenshots) {
-        if (screenshot.path.isNotEmpty) {
-          paths.add(screenshot.path);
         }
       }
       

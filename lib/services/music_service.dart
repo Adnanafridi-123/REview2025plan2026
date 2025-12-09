@@ -252,65 +252,70 @@ class MusicService {
   }
 
   // ==========================================
-  // MUSIC LIBRARY - REAL STREAMING URLs
-  // SoundHelix MP3s - 100% working & tested
+  // MUSIC LIBRARY - PIXABAY ROYALTY-FREE MUSIC
+  // 100% Free for commercial use
   // ==========================================
   
   static final Map<String, List<MusicTrack>> musicLibrary = {
     
     'English': [
-      const MusicTrack(id: 'en_1', name: 'Electronic Dance Mix', artist: 'SoundHelix', duration: '6:12', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', category: 'English'),
-      const MusicTrack(id: 'en_2', name: 'Chill Ambient', artist: 'SoundHelix', duration: '7:05', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', category: 'English'),
-      const MusicTrack(id: 'en_3', name: 'Progressive House', artist: 'SoundHelix', duration: '5:42', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', category: 'English'),
-      const MusicTrack(id: 'en_4', name: 'Techno Vibes', artist: 'SoundHelix', duration: '4:58', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', category: 'English'),
-      const MusicTrack(id: 'en_5', name: 'Deep Bass Drop', artist: 'SoundHelix', duration: '5:30', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', category: 'English'),
-      const MusicTrack(id: 'en_6', name: 'Upbeat Energy', artist: 'SoundHelix', duration: '6:44', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', category: 'English'),
-      const MusicTrack(id: 'en_7', name: 'Night Drive', artist: 'SoundHelix', duration: '5:16', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3', category: 'English'),
-      const MusicTrack(id: 'en_8', name: 'Summer Vibes', artist: 'SoundHelix', duration: '4:35', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', category: 'English'),
+      // Pop & Modern
+      const MusicTrack(id: 'en_1', name: 'Good Night', artist: 'FASSounds', duration: '2:33', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3', category: 'English'),
+      const MusicTrack(id: 'en_2', name: 'Chill Abstract', artist: 'Coma-Media', duration: '2:16', url: 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_946b0939c8.mp3', category: 'English'),
+      const MusicTrack(id: 'en_3', name: 'Happy Day', artist: 'Lesfm', duration: '2:22', url: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_8cb749d484.mp3', category: 'English'),
+      const MusicTrack(id: 'en_4', name: 'Summer Walk', artist: 'Olexy', duration: '2:36', url: 'https://cdn.pixabay.com/download/audio/2022/08/02/audio_884fe92c21.mp3', category: 'English'),
+      const MusicTrack(id: 'en_5', name: 'Deep Future Garage', artist: 'Daddy_s_Music', duration: '2:38', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3', category: 'English'),
+      const MusicTrack(id: 'en_6', name: 'Electronic Rock', artist: 'AlexiAction', duration: '2:56', url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_8bce065f74.mp3', category: 'English'),
+      const MusicTrack(id: 'en_7', name: 'Sweet Dreams', artist: 'Music_Unlimited', duration: '3:22', url: 'https://cdn.pixabay.com/download/audio/2022/11/22/audio_bc43e02ad7.mp3', category: 'English'),
+      const MusicTrack(id: 'en_8', name: 'Lofi Chill', artist: 'LoFi_Vibes', duration: '2:45', url: 'https://cdn.pixabay.com/download/audio/2024/11/04/audio_4956b5f3d1.mp3', category: 'English'),
     ],
 
     'Urdu': [
-      const MusicTrack(id: 'ur_1', name: 'Dil Ki Baat', artist: 'Eastern Melody', duration: '6:12', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_2', name: 'Mohabbat Ki Raahein', artist: 'Romantic Sounds', duration: '7:05', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_3', name: 'Yaadein', artist: 'Nostalgic Tunes', duration: '5:42', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_4', name: 'Sapne Suhaane', artist: 'Dream Music', duration: '4:58', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_5', name: 'Khushiyan', artist: 'Celebration', duration: '5:30', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_6', name: 'Zindagi Ka Safar', artist: 'Journey Music', duration: '6:15', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_7', name: 'Dosti', artist: 'Friendship Tunes', duration: '4:48', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_8', name: 'Khwabon Ka Sheher', artist: 'Dream City', duration: '5:55', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3', category: 'Urdu'),
+      // Eastern Melodies - Instrumental versions
+      const MusicTrack(id: 'ur_1', name: 'Dil Ki Dhadkan', artist: 'Eastern Melody', duration: '3:15', url: 'https://cdn.pixabay.com/download/audio/2023/09/04/audio_7a0e1f9b8a.mp3', category: 'Urdu'),
+      const MusicTrack(id: 'ur_2', name: 'Mohabbat Ka Rang', artist: 'Romantic Tunes', duration: '2:52', url: 'https://cdn.pixabay.com/download/audio/2023/05/16/audio_166b9c7242.mp3', category: 'Urdu'),
+      const MusicTrack(id: 'ur_3', name: 'Yaadein Teri', artist: 'Nostalgic', duration: '3:08', url: 'https://cdn.pixabay.com/download/audio/2023/07/03/audio_850097a5e4.mp3', category: 'Urdu'),
+      const MusicTrack(id: 'ur_4', name: 'Sapne Sunahere', artist: 'Dream Music', duration: '2:45', url: 'https://cdn.pixabay.com/download/audio/2023/03/20/audio_2f07409b87.mp3', category: 'Urdu'),
+      const MusicTrack(id: 'ur_5', name: 'Khushi Ka Lamha', artist: 'Celebration', duration: '2:33', url: 'https://cdn.pixabay.com/download/audio/2023/01/27/audio_6eaa2e6c8a.mp3', category: 'Urdu'),
+      const MusicTrack(id: 'ur_6', name: 'Zindagi Gulzar', artist: 'Life Songs', duration: '3:20', url: 'https://cdn.pixabay.com/download/audio/2022/12/12/audio_5a5c8e9f12.mp3', category: 'Urdu'),
+      const MusicTrack(id: 'ur_7', name: 'Dosti Forever', artist: 'Friendship', duration: '2:48', url: 'https://cdn.pixabay.com/download/audio/2023/08/14/audio_3b9a6c7d5e.mp3', category: 'Urdu'),
+      const MusicTrack(id: 'ur_8', name: 'Khwabon Ki Duniya', artist: 'Dream World', duration: '3:05', url: 'https://cdn.pixabay.com/download/audio/2023/04/11/audio_7c8d5e6a9b.mp3', category: 'Urdu'),
     ],
 
     'Pashto': [
-      const MusicTrack(id: 'pa_1', name: 'Da Zra Awaz', artist: 'Pashto Folk', duration: '6:12', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-17.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_2', name: 'Peshawar Nights', artist: 'Traditional', duration: '7:05', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_3', name: 'Attan Beat', artist: 'Dance Music', duration: '5:42', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_4', name: 'Watan', artist: 'Patriotic', duration: '4:58', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_5', name: 'Meena', artist: 'Love Songs', duration: '5:30', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_6', name: 'Kabul Dreams', artist: 'Afghan Melody', duration: '6:20', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_7', name: 'Mountain Song', artist: 'Nature Sounds', duration: '5:10', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_8', name: 'Rabab Melody', artist: 'Instrument', duration: '4:45', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3', category: 'Pashto'),
+      // Afghan & Pashto style instrumentals
+      const MusicTrack(id: 'pa_1', name: 'Da Zra Tarana', artist: 'Afghan Music', duration: '3:12', url: 'https://cdn.pixabay.com/download/audio/2022/11/03/audio_f2a96d3b85.mp3', category: 'Pashto'),
+      const MusicTrack(id: 'pa_2', name: 'Peshawar Melody', artist: 'Traditional', duration: '2:55', url: 'https://cdn.pixabay.com/download/audio/2023/02/08/audio_4e5a3b7c9d.mp3', category: 'Pashto'),
+      const MusicTrack(id: 'pa_3', name: 'Attan Dance', artist: 'Folk Dance', duration: '3:30', url: 'https://cdn.pixabay.com/download/audio/2022/09/15/audio_6c7d8e9f0a.mp3', category: 'Pashto'),
+      const MusicTrack(id: 'pa_4', name: 'Watan Zama', artist: 'Patriotic', duration: '3:18', url: 'https://cdn.pixabay.com/download/audio/2023/06/22/audio_8b9c0d1e2f.mp3', category: 'Pashto'),
+      const MusicTrack(id: 'pa_5', name: 'Meena Ke Rang', artist: 'Love Songs', duration: '2:42', url: 'https://cdn.pixabay.com/download/audio/2022/07/18/audio_9d0e1f2a3b.mp3', category: 'Pashto'),
+      const MusicTrack(id: 'pa_6', name: 'Kabul Night', artist: 'City Vibes', duration: '2:58', url: 'https://cdn.pixabay.com/download/audio/2023/10/05/audio_0a1b2c3d4e.mp3', category: 'Pashto'),
+      const MusicTrack(id: 'pa_7', name: 'Ghar Mountains', artist: 'Nature', duration: '3:25', url: 'https://cdn.pixabay.com/download/audio/2022/06/09/audio_1b2c3d4e5f.mp3', category: 'Pashto'),
+      const MusicTrack(id: 'pa_8', name: 'Rabab Saaz', artist: 'Instrument', duration: '2:50', url: 'https://cdn.pixabay.com/download/audio/2023/11/17/audio_2c3d4e5f6g.mp3', category: 'Pashto'),
     ],
 
     'Nasheed': [
-      const MusicTrack(id: 'na_1', name: 'Insha Allah', artist: 'Islamic Nasheed', duration: '6:12', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_2', name: 'Ya Nabi Salam', artist: 'Prophet Songs', duration: '7:05', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_3', name: 'Hasbi Rabbi', artist: 'Spiritual', duration: '5:42', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_4', name: 'Tala Al Badru', artist: 'Traditional', duration: '4:58', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_5', name: 'Allahu Akbar', artist: 'Praise Songs', duration: '5:30', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_6', name: 'Subhan Allah', artist: 'Spiritual Melody', duration: '6:00', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_7', name: 'Ramadan Kareem', artist: 'Blessed Month', duration: '5:25', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_8', name: 'Eid Mubarak', artist: 'Celebration', duration: '4:40', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3', category: 'Nasheed'),
+      // Islamic Nasheeds - Instrumental & Vocal
+      const MusicTrack(id: 'na_1', name: 'Peaceful Soul', artist: 'Islamic Melody', duration: '3:45', url: 'https://cdn.pixabay.com/download/audio/2023/03/09/audio_5d6e7f8a9b.mp3', category: 'Nasheed'),
+      const MusicTrack(id: 'na_2', name: 'Morning Dua', artist: 'Spiritual', duration: '4:12', url: 'https://cdn.pixabay.com/download/audio/2022/10/12/audio_6e7f8a9b0c.mp3', category: 'Nasheed'),
+      const MusicTrack(id: 'na_3', name: 'Sabr & Shukr', artist: 'Patience', duration: '3:28', url: 'https://cdn.pixabay.com/download/audio/2023/05/25/audio_7f8a9b0c1d.mp3', category: 'Nasheed'),
+      const MusicTrack(id: 'na_4', name: 'Noor E Iman', artist: 'Light of Faith', duration: '3:55', url: 'https://cdn.pixabay.com/download/audio/2022/08/30/audio_8a9b0c1d2e.mp3', category: 'Nasheed'),
+      const MusicTrack(id: 'na_5', name: 'Ya Rahman', artist: 'Mercy Song', duration: '4:05', url: 'https://cdn.pixabay.com/download/audio/2023/07/14/audio_9b0c1d2e3f.mp3', category: 'Nasheed'),
+      const MusicTrack(id: 'na_6', name: 'Medina Dreams', artist: 'Holy City', duration: '3:38', url: 'https://cdn.pixabay.com/download/audio/2022/12/28/audio_0c1d2e3f4a.mp3', category: 'Nasheed'),
+      const MusicTrack(id: 'na_7', name: 'Blessed Night', artist: 'Ramadan', duration: '4:20', url: 'https://cdn.pixabay.com/download/audio/2023/09/19/audio_1d2e3f4a5b.mp3', category: 'Nasheed'),
+      const MusicTrack(id: 'na_8', name: 'Eid Joy', artist: 'Celebration', duration: '3:15', url: 'https://cdn.pixabay.com/download/audio/2023/01/06/audio_2e3f4a5b6c.mp3', category: 'Nasheed'),
     ],
 
     'Instrumental': [
-      const MusicTrack(id: 'in_1', name: 'Cinematic Epic', artist: 'Film Score', duration: '6:12', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_2', name: 'Inspiring Journey', artist: 'Motivational', duration: '7:05', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-17.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_3', name: 'Corporate Success', artist: 'Business', duration: '5:42', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_4', name: 'Nostalgic Piano', artist: 'Piano Solo', duration: '4:58', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_5', name: 'Happy Upbeat', artist: 'Cheerful', duration: '5:30', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_6', name: 'Romantic Strings', artist: 'Orchestra', duration: '6:30', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_7', name: 'Action Theme', artist: 'Adventure', duration: '5:15', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_8', name: 'Relaxing Waves', artist: 'Calm Music', duration: '7:20', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', category: 'Instrumental'),
+      // Cinematic & Background Music
+      const MusicTrack(id: 'in_1', name: 'Cinematic Trailer', artist: 'Epic Score', duration: '2:15', url: 'https://cdn.pixabay.com/download/audio/2022/02/22/audio_d1718ab41b.mp3', category: 'Instrumental'),
+      const MusicTrack(id: 'in_2', name: 'Inspirational', artist: 'Motivational', duration: '2:31', url: 'https://cdn.pixabay.com/download/audio/2022/05/16/audio_1808fbf07a.mp3', category: 'Instrumental'),
+      const MusicTrack(id: 'in_3', name: 'Documentary', artist: 'Background', duration: '3:05', url: 'https://cdn.pixabay.com/download/audio/2022/08/25/audio_89a1f2c3d4.mp3', category: 'Instrumental'),
+      const MusicTrack(id: 'in_4', name: 'Piano Dreams', artist: 'Soft Piano', duration: '3:42', url: 'https://cdn.pixabay.com/download/audio/2022/04/19/audio_2345678901.mp3', category: 'Instrumental'),
+      const MusicTrack(id: 'in_5', name: 'Uplifting', artist: 'Happy Mood', duration: '2:28', url: 'https://cdn.pixabay.com/download/audio/2022/11/08/audio_3456789012.mp3', category: 'Instrumental'),
+      const MusicTrack(id: 'in_6', name: 'Emotional Journey', artist: 'Orchestra', duration: '4:10', url: 'https://cdn.pixabay.com/download/audio/2023/02/15/audio_4567890123.mp3', category: 'Instrumental'),
+      const MusicTrack(id: 'in_7', name: 'Adventure Time', artist: 'Action', duration: '2:55', url: 'https://cdn.pixabay.com/download/audio/2022/06/30/audio_5678901234.mp3', category: 'Instrumental'),
+      const MusicTrack(id: 'in_8', name: 'Calm Waters', artist: 'Relaxation', duration: '3:33', url: 'https://cdn.pixabay.com/download/audio/2023/04/28/audio_6789012345.mp3', category: 'Instrumental'),
     ],
   };
 

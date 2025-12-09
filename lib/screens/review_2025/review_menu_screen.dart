@@ -4,7 +4,6 @@ import 'timeline_screen.dart';
 import 'photo_gallery_screen.dart';
 import 'video_gallery_screen.dart';
 import 'journal_screen.dart';
-import 'screenshots_screen.dart';
 import 'achievements_screen.dart';
 import 'statistics_screen.dart';
 import 'wrapped_screen.dart';
@@ -92,16 +91,7 @@ class ReviewMenuScreen extends StatelessWidget {
                       onTap: () => _navigateTo(context, const JournalScreen()),
                     ),
                     
-                    // 5. Screenshots - Orange gradient
-                    _ReviewCard(
-                      emoji: '📱',
-                      title: 'Screenshots',
-                      subtitle: 'Memorable captures',
-                      gradientColors: const [Color(0xFFF2994A), Color(0xFFF2C94C)],
-                      onTap: () => _navigateTo(context, const ScreenshotsScreen()),
-                    ),
-                    
-                    // 6. Achievements - Gold/Yellow gradient
+                    // 5. Achievements - Gold/Yellow gradient
                     _ReviewCard(
                       emoji: '🏆',
                       title: 'Achievements',
@@ -110,7 +100,7 @@ class ReviewMenuScreen extends StatelessWidget {
                       onTap: () => _navigateTo(context, const AchievementsScreen()),
                     ),
                     
-                    // 7. Statistics - Green gradient
+                    // 6. Statistics - Green gradient
                     _ReviewCard(
                       emoji: '📊',
                       title: 'Statistics',
@@ -119,7 +109,7 @@ class ReviewMenuScreen extends StatelessWidget {
                       onTap: () => _navigateTo(context, const StatisticsScreen()),
                     ),
                     
-                    // 8. Generate Wrapped - Purple/Pink gradient
+                    // 7. Generate Wrapped - Purple/Pink gradient
                     _ReviewCard(
                       emoji: '✨',
                       title: 'Generate Wrapped',
@@ -128,11 +118,11 @@ class ReviewMenuScreen extends StatelessWidget {
                       onTap: () => _navigateTo(context, const WrappedScreen()),
                     ),
                     
-                    // 9. Video Memories - Dark Navy gradient
+                    // 8. Video Memories - Dark Navy gradient
                     _ReviewCard(
                       emoji: '🎥',
                       title: 'Video Memories',
-                      subtitle: 'Create 2-min video slideshow',
+                      subtitle: 'Select photos/videos to create slideshow',
                       gradientColors: const [Color(0xFF24243E), Color(0xFF302B63)],
                       onTap: () => _navigateTo(context, const VideoMemoriesScreen()),
                     ),
