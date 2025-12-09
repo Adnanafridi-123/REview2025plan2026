@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/beautiful_back_button.dart';
 import 'timeline_screen.dart';
 import 'photo_gallery_screen.dart';
 import 'video_gallery_screen.dart';
@@ -147,18 +148,11 @@ class ReviewMenuScreen extends StatelessWidget {
 
   Widget _buildAppBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF333333)),
-          ),
+          const LightBackButton(),
           const Spacer(),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.more_horiz, color: Color(0xFF333333)),
-          ),
         ],
       ),
     );

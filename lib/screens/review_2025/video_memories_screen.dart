@@ -4,6 +4,7 @@ import '../../utils/app_theme.dart';
 import '../../services/media_service.dart';
 import '../../services/music_service.dart';
 import '../../providers/app_provider.dart';
+import '../../widgets/beautiful_back_button.dart';
 
 class VideoMemoriesScreen extends StatefulWidget {
   const VideoMemoriesScreen({super.key});
@@ -221,25 +222,13 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
         children: [
-          GestureDetector(
+          BeautifulBackButton(
+            isDarkMode: isDarkMode,
             onTap: () {
               // Stop music before leaving
               _stopMusicPreview();
               Navigator.pop(context);
             },
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                Icons.arrow_back_ios_new,
-                color: isDarkMode ? Colors.white : AppTheme.textWhite,
-                size: 20,
-              ),
-            ),
           ),
         ],
       ),

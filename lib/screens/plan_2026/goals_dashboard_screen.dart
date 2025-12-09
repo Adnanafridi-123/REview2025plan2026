@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/app_theme.dart';
 import '../../models/goal.dart';
+import '../../widgets/beautiful_back_button.dart';
 import 'create_goal_screen.dart';
 import 'goal_detail_screen.dart';
 
@@ -124,22 +125,7 @@ class _GoalsDashboardScreenState extends State<GoalsDashboardScreen> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new,
-                color: AppTheme.textWhite,
-                size: 20,
-              ),
-            ),
-          ),
+          const BeautifulBackButton(),
         ],
       ),
     );

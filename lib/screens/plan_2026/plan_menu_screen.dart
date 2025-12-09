@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../utils/app_theme.dart';
+import '../../widgets/beautiful_back_button.dart';
 import 'goals_dashboard_screen.dart';
 import 'habit_tracker_screen.dart';
 import 'calendar_screen.dart';
@@ -111,36 +112,8 @@ class PlanMenuScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new,
-                color: AppTheme.textWhite,
-                size: 20,
-              ),
-            ),
-          ),
+          const BeautifulBackButton(),
           const Spacer(),
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.more_horiz,
-              color: AppTheme.textWhite,
-              size: 22,
-            ),
-          ),
         ],
       ),
     );

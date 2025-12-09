@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/app_theme.dart';
+import 'beautiful_back_button.dart';
 
 class ReviewAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -26,21 +27,8 @@ class ReviewAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: showBack
           ? Padding(
               padding: const EdgeInsets.only(left: 12),
-              child: GestureDetector(
+              child: BeautifulBackButton(
                 onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.arrow_back_ios_new,
-                    color: AppTheme.textWhite,
-                    size: 18,
-                  ),
-                ),
               ),
             )
           : null,
@@ -53,25 +41,7 @@ class ReviewAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       centerTitle: true,
-      actions: actions ??
-          [
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.more_horiz,
-                  color: AppTheme.textWhite,
-                  size: 20,
-                ),
-              ),
-            ),
-          ],
+      actions: actions ?? const [],
     );
   }
 }

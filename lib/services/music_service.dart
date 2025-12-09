@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:audioplayers/audioplayers.dart';
 
-/// Music track model
+/// Music track model with playable URL
 class MusicTrack {
   final String id;
   final String name;
@@ -68,6 +68,10 @@ class MusicService {
       
       _currentTrack = track;
       
+      if (kDebugMode) {
+        debugPrint('Playing URL: ${track.url}');
+      }
+      
       await _audioPlayer.play(UrlSource(track.url));
       _isPlaying = true;
       
@@ -78,6 +82,7 @@ class MusicService {
       if (kDebugMode) {
         debugPrint('Error playing music: $e');
       }
+      _isPlaying = false;
     }
   }
 
@@ -148,7 +153,8 @@ class MusicService {
   }
 
   // ==========================================
-  // MUSIC LIBRARY - Royalty Free Music URLs
+  // MUSIC LIBRARY - Real Playable Music URLs
+  // Using free MP3 sources that work on all platforms
   // ==========================================
   
   /// Complete music library with real playable URLs
