@@ -4,7 +4,6 @@ import '../utils/app_theme.dart';
 import '../providers/app_provider.dart';
 import 'review_2025/review_menu_screen.dart';
 import 'plan_2026/plan_menu_screen.dart';
-import 'settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -13,10 +12,21 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
-        return GradientBackground(
-          child: Scaffold(
-            backgroundColor: Colors.transparent,
-            body: SafeArea(
+        final isDarkMode = provider.isDarkMode;
+        
+        return Scaffold(
+          backgroundColor: isDarkMode ? const Color(0xFF1A1A2E) : AppTheme.bgTop,
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: isDarkMode 
+                  ? const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F3460)],
+                    )
+                  : AppTheme.backgroundGradient,
+            ),
+            child: SafeArea(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 child: Padding(
@@ -24,7 +34,7 @@ class HomeScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Top Header Row with Dark/Light Mode & Settings Button
+                      // Top Header Row with Dark/Light Mode Toggle
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -32,62 +42,63 @@ class HomeScreen extends StatelessWidget {
                             'Your 2025',
                             style: TextStyle(
                               fontSize: 14,
-                              color: AppTheme.textWhite.withValues(alpha: 0.7),
+                              color: Colors.white.withValues(alpha: 0.7),
                             ),
                           ),
-                          Row(
-                            children: [
-                              // Dark/Light Mode Toggle Button
-                              GestureDetector(
-                                onTap: () => provider.toggleDarkMode(),
-                                child: Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(
-                                    provider.isDarkMode 
+                          // Dark/Light Mode Toggle Button
+                          GestureDetector(
+                            onTap: () => provider.toggleDarkMode(),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isDarkMode 
+                                    ? const Color(0xFFFFD700).withValues(alpha: 0.2)
+                                    : Colors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(25),
+                                border: Border.all(
+                                  color: isDarkMode 
+                                      ? const Color(0xFFFFD700).withValues(alpha: 0.5)
+                                      : Colors.white.withValues(alpha: 0.3),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isDarkMode 
                                         ? Icons.light_mode 
                                         : Icons.dark_mode,
-                                    color: provider.isDarkMode 
+                                    color: isDarkMode 
                                         ? const Color(0xFFFFD700) 
-                                        : AppTheme.textWhite.withValues(alpha: 0.8),
-                                    size: 22,
+                                        : Colors.white,
+                                    size: 20,
                                   ),
-                                ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    isDarkMode ? 'Light' : 'Dark',
+                                    style: TextStyle(
+                                      color: isDarkMode 
+                                          ? const Color(0xFFFFD700)
+                                          : Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 10),
-                              // Settings Button
-                              GestureDetector(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(
-                                    Icons.settings,
-                                    color: AppTheme.textWhite.withValues(alpha: 0.8),
-                                    size: 22,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
                       // Main Title - App Name
-                      const Text(
+                      Text(
                         'Review 2025',
                         style: TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.textYellow,
+                          color: isDarkMode ? const Color(0xFFFFD700) : AppTheme.textYellow,
                         ),
                       ),
                       const Text(
@@ -95,7 +106,7 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.textWhite,
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -104,21 +115,21 @@ class HomeScreen extends StatelessWidget {
                         'Reflect on your memories & plan your future',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppTheme.textWhite.withValues(alpha: 0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                       const SizedBox(height: 24),
                       
                       // Review 2025 Card - Large rectangular card
-                      _buildReview2025Card(context),
+                      _buildReview2025Card(context, isDarkMode),
                       const SizedBox(height: 16),
                       
                       // Plan 2026 Card - Large rectangular card
-                      _buildPlan2026Card(context),
+                      _buildPlan2026Card(context, isDarkMode),
                       const SizedBox(height: 24),
                       
                       // Quick Stats Section
-                      _buildQuickStatsSection(context),
+                      _buildQuickStatsSection(context, isDarkMode),
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -132,7 +143,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   // Review 2025 Card - Pink gradient with camera icon
-  Widget _buildReview2025Card(BuildContext context) {
+  Widget _buildReview2025Card(BuildContext context, bool isDarkMode) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -142,12 +153,25 @@ class HomeScreen extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [Color(0xFFE8A0B5), Color(0xFFF5C5D0)],
-          ),
+          gradient: isDarkMode 
+              ? const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xFFB8405E), Color(0xFFEE6F57)],
+                )
+              : const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xFFE8A0B5), Color(0xFFF5C5D0)],
+                ),
           borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -217,7 +241,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   // Plan 2026 Card - Green gradient with target icon
-  Widget _buildPlan2026Card(BuildContext context) {
+  Widget _buildPlan2026Card(BuildContext context, bool isDarkMode) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -227,12 +251,25 @@ class HomeScreen extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [Color(0xFF4ECDC4), Color(0xFF7BDDC8)],
-          ),
+          gradient: isDarkMode 
+              ? const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xFF00917C), Color(0xFF00C9A7)],
+                )
+              : const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xFF4ECDC4), Color(0xFF7BDDC8)],
+                ),
           borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -294,7 +331,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   // Quick Stats Section - 2x2 Grid
-  Widget _buildQuickStatsSection(BuildContext context) {
+  Widget _buildQuickStatsSection(BuildContext context, bool isDarkMode) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -309,13 +346,13 @@ class HomeScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textWhite,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(width: 6),
                 Icon(
                   Icons.info_outline,
-                  color: AppTheme.textWhite.withValues(alpha: 0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                   size: 18,
                 ),
               ],
@@ -330,7 +367,7 @@ class HomeScreen extends StatelessWidget {
               child: const Text(
                 '2025',
                 style: TextStyle(
-                  color: AppTheme.textWhite,
+                  color: Colors.white,
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
@@ -354,6 +391,7 @@ class HomeScreen extends StatelessWidget {
                         iconColor: const Color(0xFFFF7B9C),
                         label: 'Photos',
                         count: provider.totalPhotos,
+                        isDarkMode: isDarkMode,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -363,6 +401,7 @@ class HomeScreen extends StatelessWidget {
                         iconColor: const Color(0xFF4ECDC4),
                         label: 'Videos',
                         count: provider.totalVideos,
+                        isDarkMode: isDarkMode,
                       ),
                     ),
                   ],
@@ -377,6 +416,7 @@ class HomeScreen extends StatelessWidget {
                         iconColor: const Color(0xFFFF9F43),
                         label: 'Journal',
                         count: provider.totalJournals,
+                        isDarkMode: isDarkMode,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -386,6 +426,7 @@ class HomeScreen extends StatelessWidget {
                         iconColor: const Color(0xFF26DE81),
                         label: 'Achievements',
                         count: provider.totalAchievements,
+                        isDarkMode: isDarkMode,
                       ),
                     ),
                   ],
@@ -399,18 +440,20 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// Quick Stat Card - Glass style from screenshot
+// Quick Stat Card - Glass style
 class _QuickStatCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final String label;
   final int count;
+  final bool isDarkMode;
 
   const _QuickStatCard({
     required this.icon,
     required this.iconColor,
     required this.label,
     required this.count,
+    required this.isDarkMode,
   });
 
   @override
@@ -418,7 +461,9 @@ class _QuickStatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
+        color: isDarkMode 
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.1),
@@ -445,7 +490,7 @@ class _QuickStatCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: AppTheme.textWhite,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 2),
@@ -454,7 +499,7 @@ class _QuickStatCard extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 13,
-              color: AppTheme.textWhite.withValues(alpha: 0.7),
+              color: Colors.white.withValues(alpha: 0.7),
             ),
           ),
         ],

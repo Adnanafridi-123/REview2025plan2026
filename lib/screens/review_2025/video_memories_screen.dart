@@ -1,9 +1,9 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../utils/app_theme.dart';
-import '../../models/media_item.dart';
 import '../../services/media_service.dart';
+import '../../services/music_service.dart';
+import '../../providers/app_provider.dart';
 
 class VideoMemoriesScreen extends StatefulWidget {
   const VideoMemoriesScreen({super.key});
@@ -15,17 +15,59 @@ class VideoMemoriesScreen extends StatefulWidget {
 class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTickerProviderStateMixin {
   String _selectedStyle = 'Cinematic';
   String _selectedDuration = '30s';
-  String _selectedMusic = 'Uplifting';
+  MusicTrack? _selectedMusicTrack;
+  String _selectedMusicCategory = 'English';
   bool _isGenerating = false;
   bool _isGenerated = false;
   int _generationProgress = 0;
   
-  // Selected media for video
-  List<MediaItem> _selectedMedia = [];
+  // Music playback state
+  bool _isPlayingPreview = false;
+  String? _currentlyPlayingTrackId;
   
   // Animation
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
+
+  // Video Styles with descriptions
+  final List<Map<String, dynamic>> _videoStyles = [
+    {
+      'name': 'Cinematic',
+      'icon': Icons.movie_filter,
+      'description': 'Film-like transitions with dramatic effects',
+      'color': const Color(0xFF8E2DE2),
+    },
+    {
+      'name': 'Slideshow',
+      'icon': Icons.photo_library,
+      'description': 'Classic photo slideshow with smooth fades',
+      'color': const Color(0xFF00C9FF),
+    },
+    {
+      'name': 'Dynamic',
+      'icon': Icons.speed,
+      'description': 'Fast-paced with energetic transitions',
+      'color': const Color(0xFFFF5E62),
+    },
+    {
+      'name': 'Highlights',
+      'icon': Icons.star,
+      'description': 'Best moments with spotlight effects',
+      'color': const Color(0xFFFFD200),
+    },
+    {
+      'name': 'Memories',
+      'icon': Icons.favorite,
+      'description': 'Nostalgic style with soft filters',
+      'color': const Color(0xFFFF6B8A),
+    },
+    {
+      'name': 'Modern',
+      'icon': Icons.auto_awesome,
+      'description': 'Trendy effects with stylish animations',
+      'color': const Color(0xFF4ECDC4),
+    },
+  ];
 
   @override
   void initState() {
@@ -39,261 +81,80 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
     );
     _animController.forward();
     
-    // Auto-select all media
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadAllMedia();
-    });
+    // Initialize music service
+    MusicService.init();
   }
 
   @override
   void dispose() {
+    // Stop music when leaving screen
+    MusicService.stop();
     _animController.dispose();
     super.dispose();
   }
 
-  void _loadAllMedia() {
-    try {
-      final photos = MediaService.getAllPhotos();
-      final videos = MediaService.getAllVideos();
-      final screenshots = MediaService.getAllScreenshots();
-      
+  int _getMediaCount() {
+    final photos = MediaService.getAllPhotos().length;
+    final videos = MediaService.getAllVideos().length;
+    final screenshots = MediaService.getAllScreenshots().length;
+    return photos + videos + screenshots;
+  }
+
+  // Toggle music preview playback
+  Future<void> _toggleMusicPreview(MusicTrack track) async {
+    if (_currentlyPlayingTrackId == track.id && _isPlayingPreview) {
+      // Pause current track
+      await MusicService.pause();
       setState(() {
-        _selectedMedia = [...photos, ...videos, ...screenshots];
-        _selectedMedia.sort((a, b) => a.date.compareTo(b.date));
+        _isPlayingPreview = false;
       });
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Error loading media: $e');
-      }
+    } else if (_currentlyPlayingTrackId == track.id && !_isPlayingPreview) {
+      // Resume current track
+      await MusicService.resume();
+      setState(() {
+        _isPlayingPreview = true;
+      });
+    } else {
+      // Play new track
+      await MusicService.play(track);
+      setState(() {
+        _currentlyPlayingTrackId = track.id;
+        _isPlayingPreview = true;
+      });
     }
   }
 
-  void _toggleMediaSelection(MediaItem item) {
+  // Stop music preview
+  Future<void> _stopMusicPreview() async {
+    await MusicService.stop();
     setState(() {
-      if (_selectedMedia.any((m) => m.id == item.id)) {
-        _selectedMedia.removeWhere((m) => m.id == item.id);
-      } else {
-        _selectedMedia.add(item);
-      }
+      _isPlayingPreview = false;
+      _currentlyPlayingTrackId = null;
     });
-  }
-
-  Future<void> _addMoreMedia() async {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            // Handle bar
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Add More Media',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textDark,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(Icons.close, color: Colors.grey[600], size: 20),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // Options
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _AddMediaOption(
-                    icon: Icons.photo_library,
-                    title: 'From Photo Gallery',
-                    subtitle: 'Select photos from your device',
-                    color: const Color(0xFF8C52FF),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final photos = await MediaService.pickMultiplePhotos();
-                      if (photos.isNotEmpty) {
-                        setState(() {
-                          for (var photo in photos) {
-                            if (!_selectedMedia.any((m) => m.id == photo.id)) {
-                              _selectedMedia.add(photo);
-                            }
-                          }
-                        });
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('${photos.length} photos added'),
-                              backgroundColor: AppTheme.iconGreen,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _AddMediaOption(
-                    icon: Icons.video_library,
-                    title: 'From Video Gallery',
-                    subtitle: 'Select videos from your device',
-                    color: AppTheme.iconGreen,
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final video = await MediaService.pickVideoFromGallery();
-                      if (video != null) {
-                        setState(() {
-                          if (!_selectedMedia.any((m) => m.id == video.id)) {
-                            _selectedMedia.add(video);
-                          }
-                        });
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Video added'),
-                              backgroundColor: AppTheme.iconGreen,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _AddMediaOption(
-                    icon: Icons.screenshot,
-                    title: 'From Screenshots',
-                    subtitle: 'Select screenshots from your device',
-                    color: const Color(0xFFF2994A),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final screenshot = await MediaService.pickScreenshot();
-                      if (screenshot != null) {
-                        setState(() {
-                          if (!_selectedMedia.any((m) => m.id == screenshot.id)) {
-                            _selectedMedia.add(screenshot);
-                          }
-                        });
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Screenshot added'),
-                              backgroundColor: AppTheme.iconGreen,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _AddMediaOption(
-                    icon: Icons.camera_alt,
-                    title: 'Take New Photo',
-                    subtitle: 'Capture a new photo now',
-                    color: const Color(0xFF00C9FF),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final photo = await MediaService.takePhotoWithCamera();
-                      if (photo != null) {
-                        setState(() {
-                          _selectedMedia.add(photo);
-                        });
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Photo captured and added'),
-                              backgroundColor: AppTheme.iconGreen,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _AddMediaOption(
-                    icon: Icons.videocam,
-                    title: 'Record New Video',
-                    subtitle: 'Record a new video now',
-                    color: const Color(0xFFFF5E62),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final video = await MediaService.recordVideo();
-                      if (video != null) {
-                        setState(() {
-                          _selectedMedia.add(video);
-                        });
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Video recorded and added'),
-                              backgroundColor: AppTheme.iconGreen,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return GradientBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
+    final isDarkMode = context.watch<AppProvider>().isDarkMode;
+    final mediaCount = _getMediaCount();
+    
+    return Scaffold(
+      backgroundColor: isDarkMode ? const Color(0xFF1A1A2E) : AppTheme.bgTop,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: isDarkMode 
+              ? const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F3460)],
+                )
+              : AppTheme.backgroundGradient,
+        ),
+        child: SafeArea(
           child: Column(
             children: [
-              // App Bar
-              _buildAppBar(context),
+              // App Bar - Simple with just back button
+              _buildAppBar(context, isDarkMode),
               
               // Content
               Expanded(
@@ -304,45 +165,45 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Header
-                      const Text(
+                      Text(
                         'Video Memories',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.textWhite,
+                          color: isDarkMode ? Colors.white : AppTheme.textWhite,
                         ),
                       ),
                       Text(
                         'Create a video from your 2025 moments',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppTheme.textWhite.withValues(alpha: 0.7),
+                          color: (isDarkMode ? Colors.white : AppTheme.textWhite).withValues(alpha: 0.7),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       
-                      // Selected Media Preview
-                      _buildMediaPreview(),
+                      // Media Count Card
+                      _buildMediaCountCard(mediaCount, isDarkMode),
                       const SizedBox(height: 24),
                       
                       // Preview Area
-                      _buildPreviewArea(),
+                      _buildPreviewArea(isDarkMode, mediaCount),
                       const SizedBox(height: 24),
                       
                       // Style Selection
-                      _buildStyleSection(),
-                      const SizedBox(height: 20),
+                      _buildStyleSection(isDarkMode),
+                      const SizedBox(height: 24),
                       
-                      // Music Selection
-                      _buildMusicSection(),
-                      const SizedBox(height: 20),
+                      // Music Selection - Complete Library with Play/Pause
+                      _buildMusicSection(isDarkMode),
+                      const SizedBox(height: 24),
                       
                       // Duration Selection
-                      _buildDurationSection(),
+                      _buildDurationSection(isDarkMode),
                       const SizedBox(height: 28),
                       
                       // Generate Button
-                      _buildGenerateButton(),
+                      _buildGenerateButton(mediaCount, isDarkMode),
                       const SizedBox(height: 16),
                     ],
                   ),
@@ -355,13 +216,17 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, bool isDarkMode) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              // Stop music before leaving
+              _stopMusicPreview();
+              Navigator.pop(context);
+            },
             child: Container(
               width: 44,
               height: 44,
@@ -369,40 +234,10 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
                 color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back_ios_new,
-                color: AppTheme.textWhite,
+                color: isDarkMode ? Colors.white : AppTheme.textWhite,
                 size: 20,
-              ),
-            ),
-          ),
-          const Spacer(),
-          // Reset button
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedMedia.clear();
-                _isGenerated = false;
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.refresh, color: Colors.white.withValues(alpha: 0.8), size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Reset',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
               ),
             ),
           ),
@@ -411,192 +246,39 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
     );
   }
 
-  Widget _buildMediaPreview() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Selected Media',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textWhite,
-                  ),
-                ),
-                Text(
-                  '${_selectedMedia.length} items selected',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.textWhite.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-            GestureDetector(
-              onTap: _addMoreMedia,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppTheme.iconPurple,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.add, color: Colors.white, size: 18),
-                    SizedBox(width: 4),
-                    Text(
-                      'Add More',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        // Media thumbnails
-        if (_selectedMedia.isEmpty)
-          Container(
-            height: 100,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.2),
-                style: BorderStyle.solid,
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add_photo_alternate, 
-                  color: Colors.white.withValues(alpha: 0.5), size: 36),
-                const SizedBox(height: 8),
-                Text(
-                  'No media selected. Tap "Add More" to start!',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          SizedBox(
-            height: 80,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _selectedMedia.length,
-              itemBuilder: (context, index) {
-                final item = _selectedMedia[index];
-                return GestureDetector(
-                  onTap: () => _toggleMediaSelection(item),
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    margin: EdgeInsets.only(right: index < _selectedMedia.length - 1 ? 10 : 0),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-                    ),
-                    child: Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: kIsWeb
-                              ? Container(
-                                  color: item.isVideo 
-                                      ? AppTheme.iconGreen.withValues(alpha: 0.3)
-                                      : AppTheme.iconPurple.withValues(alpha: 0.3),
-                                  child: Center(
-                                    child: Icon(
-                                      item.isVideo ? Icons.videocam : Icons.photo,
-                                      color: Colors.white.withValues(alpha: 0.7),
-                                      size: 30,
-                                    ),
-                                  ),
-                                )
-                              : Image.file(
-                                  File(item.thumbnailPath ?? item.path),
-                                  fit: BoxFit.cover,
-                                  width: 80,
-                                  height: 80,
-                                  errorBuilder: (_, __, ___) => Container(
-                                    color: Colors.grey[800],
-                                    child: Icon(
-                                      item.isVideo ? Icons.videocam : Icons.photo,
-                                      color: Colors.white54,
-                                    ),
-                                  ),
-                                ),
-                        ),
-                        // Type indicator
-                        Positioned(
-                          bottom: 4,
-                          right: 4,
-                          child: Container(
-                            width: 22,
-                            height: 22,
-                            decoration: BoxDecoration(
-                              color: item.isVideo ? AppTheme.iconGreen : AppTheme.iconPurple,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Icon(
-                              item.isVideo ? Icons.videocam : Icons.photo,
-                              color: Colors.white,
-                              size: 12,
-                            ),
-                          ),
-                        ),
-                        // Remove button
-                        Positioned(
-                          top: 2,
-                          right: 2,
-                          child: GestureDetector(
-                            onTap: () => _toggleMediaSelection(item),
-                            child: Container(
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.6),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.close, color: Colors.white, size: 12),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
+  Widget _buildMediaCountCard(int mediaCount, bool isDarkMode) {
+    final photos = MediaService.getAllPhotos().length;
+    final videos = MediaService.getAllVideos().length;
+    final screenshots = MediaService.getAllScreenshots().length;
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: isDarkMode ? 0.1 : 0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _MediaCountItem(icon: Icons.photo, count: photos, label: 'Photos', color: AppTheme.iconPink),
+          _MediaCountItem(icon: Icons.videocam, count: videos, label: 'Videos', color: AppTheme.iconGreen),
+          _MediaCountItem(icon: Icons.screenshot, count: screenshots, label: 'Screenshots', color: AppTheme.iconOrange),
+        ],
+      ),
     );
   }
 
-  Widget _buildPreviewArea() {
+  Widget _buildPreviewArea(bool isDarkMode, int mediaCount) {
     return ScaleTransition(
       scale: _scaleAnimation,
       child: Container(
         height: 200,
         width: double.infinity,
         decoration: BoxDecoration(
-          gradient: AppTheme.videoMemoriesGradient,
+          gradient: isDarkMode 
+              ? const LinearGradient(colors: [Color(0xFF1A1A2E), Color(0xFF302B63)])
+              : AppTheme.videoMemoriesGradient,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -610,12 +292,12 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
             ? _buildGeneratingState()
             : _isGenerated
                 ? _buildGeneratedState()
-                : _buildInitialPreviewState(),
+                : _buildInitialPreviewState(mediaCount),
       ),
     );
   }
 
-  Widget _buildInitialPreviewState() {
+  Widget _buildInitialPreviewState(int mediaCount) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -643,9 +325,9 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
         ),
         const SizedBox(height: 4),
         Text(
-          _selectedMedia.isEmpty 
-              ? 'Add media to create your video'
-              : '${_selectedMedia.length} media items ready',
+          mediaCount == 0 
+              ? 'Add photos/videos to create your video'
+              : '$mediaCount media items ready to use',
           style: TextStyle(
             fontSize: 14,
             color: Colors.white.withValues(alpha: 0.7),
@@ -693,7 +375,7 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
         ),
         const SizedBox(height: 4),
         Text(
-          'Processing ${_selectedMedia.length} media items',
+          'Style: $_selectedStyle • Music: ${_selectedMusicTrack?.name ?? 'No Music'}',
           style: TextStyle(
             fontSize: 13,
             color: Colors.white.withValues(alpha: 0.7),
@@ -710,7 +392,7 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
         Container(
           width: 60,
           height: 60,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppTheme.iconGreen,
             shape: BoxShape.circle,
           ),
@@ -783,55 +465,221 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
     );
   }
 
-  Widget _buildStyleSection() {
-    final styles = [
-      {'name': 'Cinematic', 'icon': Icons.movie_filter},
-      {'name': 'Slideshow', 'icon': Icons.photo_library},
-      {'name': 'Dynamic', 'icon': Icons.speed},
-      {'name': 'Highlights', 'icon': Icons.star},
-    ];
-    
+  Widget _buildStyleSection(bool isDarkMode) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Video Style',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: AppTheme.textWhite,
+            color: isDarkMode ? Colors.white : AppTheme.textWhite,
           ),
         ),
         const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: styles.map((style) {
+        SizedBox(
+          height: 110,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _videoStyles.length,
+            itemBuilder: (context, index) {
+              final style = _videoStyles[index];
               final isSelected = _selectedStyle == style['name'];
               return GestureDetector(
                 onTap: () => setState(() => _selectedStyle = style['name'] as String),
                 child: Container(
-                  margin: const EdgeInsets.only(right: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  width: 100,
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? AppTheme.iconPurple
-                        : Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(14),
+                        ? (style['color'] as Color)
+                        : Colors.white.withValues(alpha: isDarkMode ? 0.1 : 0.15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: isSelected
+                        ? null
+                        : Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        style['icon'] as IconData,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        style['name'] as String,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        // Style description
+        if (_selectedStyle.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              _videoStyles.firstWhere((s) => s['name'] == _selectedStyle)['description'] as String,
+              style: TextStyle(
+                fontSize: 13,
+                color: (isDarkMode ? Colors.white : AppTheme.textWhite).withValues(alpha: 0.6),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMusicSection(bool isDarkMode) {
+    final categories = [...MusicService.categories, 'No Music'];
+    final currentTracks = _selectedMusicCategory != 'No Music' 
+        ? MusicService.getTracksByCategory(_selectedMusicCategory)
+        : <MusicTrack>[];
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Background Music',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDarkMode ? Colors.white : AppTheme.textWhite,
+              ),
+            ),
+            // Music preview controls
+            if (_isPlayingPreview)
+              GestureDetector(
+                onTap: _stopMusicPreview,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.stop, color: Colors.red, size: 14),
+                      SizedBox(width: 4),
+                      Text('Stop', style: TextStyle(color: Colors.red, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              )
+            else if (_selectedMusicTrack != null)
+              GestureDetector(
+                onTap: () => setState(() => _selectedMusicTrack = null),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.music_off, color: Colors.red, size: 14),
+                      SizedBox(width: 4),
+                      Text('Clear', style: TextStyle(color: Colors.red, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        
+        // Music Categories
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: categories.map((category) {
+              final isSelected = _selectedMusicCategory == category;
+              final Color categoryColor;
+              final IconData categoryIcon;
+              
+              switch (category) {
+                case 'English':
+                  categoryColor = const Color(0xFF00C9FF);
+                  categoryIcon = Icons.music_note;
+                  break;
+                case 'Urdu':
+                  categoryColor = const Color(0xFF8C52FF);
+                  categoryIcon = Icons.queue_music;
+                  break;
+                case 'Pashto':
+                  categoryColor = const Color(0xFF4ECDC4);
+                  categoryIcon = Icons.library_music;
+                  break;
+                case 'Nasheed':
+                  categoryColor = const Color(0xFF26DE81);
+                  categoryIcon = Icons.mosque;
+                  break;
+                case 'Instrumental':
+                  categoryColor = const Color(0xFFFFB347);
+                  categoryIcon = Icons.piano;
+                  break;
+                case 'No Music':
+                  categoryColor = const Color(0xFF888888);
+                  categoryIcon = Icons.music_off;
+                  break;
+                default:
+                  categoryColor = AppTheme.iconPurple;
+                  categoryIcon = Icons.music_note;
+              }
+              
+              return GestureDetector(
+                onTap: () {
+                  // Stop any playing preview when changing category
+                  if (_isPlayingPreview) {
+                    _stopMusicPreview();
+                  }
+                  setState(() {
+                    _selectedMusicCategory = category;
+                    if (category == 'No Music') {
+                      _selectedMusicTrack = null;
+                    }
+                  });
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? categoryColor
+                        : Colors.white.withValues(alpha: isDarkMode ? 0.1 : 0.15),
+                    borderRadius: BorderRadius.circular(20),
                     border: isSelected
                         ? null
                         : Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
-                      Icon(style['icon'] as IconData, color: Colors.white, size: 18),
-                      const SizedBox(width: 8),
+                      Icon(categoryIcon, color: Colors.white, size: 16),
+                      const SizedBox(width: 6),
                       Text(
-                        style['name'] as String,
+                        category,
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          fontSize: 14,
+                          fontSize: 13,
                         ),
                       ),
                     ],
@@ -841,71 +689,299 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
             }).toList(),
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildMusicSection() {
-    final musicOptions = ['Uplifting', 'Calm', 'Energetic', 'Nostalgic', 'No Music'];
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Background Music',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textWhite,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: musicOptions.map((music) {
-            final isSelected = _selectedMusic == music;
-            return GestureDetector(
-              onTap: () => setState(() => _selectedMusic = music),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppTheme.iconGreen
-                      : Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
-                  border: isSelected
-                      ? null
-                      : Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                ),
-                child: Text(
-                  music,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 13,
+        const SizedBox(height: 16),
+        
+        // Track List with Play/Pause buttons
+        if (_selectedMusicCategory != 'No Music' && currentTracks.isNotEmpty)
+          Container(
+            height: 240,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: isDarkMode ? 0.05 : 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Column(
+              children: [
+                // Header with play instruction
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.headphones,
+                        color: Colors.white.withValues(alpha: 0.7),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Tap play button to preview music',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                // Track list
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(8),
+                    itemCount: currentTracks.length,
+                    itemBuilder: (context, index) {
+                      final track = currentTracks[index];
+                      final isSelected = _selectedMusicTrack?.id == track.id;
+                      final isPlaying = _currentlyPlayingTrackId == track.id && _isPlayingPreview;
+                      
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => _selectedMusicTrack = track);
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppTheme.iconGreen.withValues(alpha: 0.3)
+                                : isPlaying
+                                    ? AppTheme.iconPurple.withValues(alpha: 0.2)
+                                    : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                            border: isPlaying && !isSelected
+                                ? Border.all(color: AppTheme.iconPurple.withValues(alpha: 0.5))
+                                : null,
+                          ),
+                          child: Row(
+                            children: [
+                              // Play/Pause Button
+                              GestureDetector(
+                                onTap: () => _toggleMusicPreview(track),
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: isPlaying
+                                        ? AppTheme.iconPurple
+                                        : isSelected
+                                            ? AppTheme.iconGreen
+                                            : Colors.white.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    isPlaying ? Icons.pause : Icons.play_arrow,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            track.name,
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: isSelected || isPlaying ? FontWeight.bold : FontWeight.normal,
+                                              fontSize: 14,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (isPlaying)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.iconPurple,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.volume_up, color: Colors.white, size: 10),
+                                                SizedBox(width: 2),
+                                                Text(
+                                                  'Playing',
+                                                  style: TextStyle(color: Colors.white, fontSize: 9),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      track.artist,
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.6),
+                                        fontSize: 12,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // Duration
+                              Text(
+                                track.duration,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                  fontSize: 12,
+                                ),
+                              ),
+                              // Selection indicator
+                              if (isSelected) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.iconGreen,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (_selectedMusicCategory == 'No Music')
+          Container(
+            height: 80,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: isDarkMode ? 0.05 : 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.music_off, color: Colors.white.withValues(alpha: 0.5), size: 24),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Video will be created without background music',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
               ),
-            );
-          }).toList(),
-        ),
+            ),
+          ),
+          
+        // Selected track indicator with play button
+        if (_selectedMusicTrack != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTheme.iconGreen.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.iconGreen.withValues(alpha: 0.5)),
+              ),
+              child: Row(
+                children: [
+                  // Play/pause for selected track
+                  GestureDetector(
+                    onTap: () => _toggleMusicPreview(_selectedMusicTrack!),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: _currentlyPlayingTrackId == _selectedMusicTrack?.id && _isPlayingPreview
+                            ? AppTheme.iconPurple
+                            : AppTheme.iconGreen,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        _currentlyPlayingTrackId == _selectedMusicTrack?.id && _isPlayingPreview
+                            ? Icons.pause
+                            : Icons.play_arrow,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Selected for video:',
+                          style: TextStyle(
+                            color: AppTheme.iconGreen,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          '${_selectedMusicTrack!.name} - ${_selectedMusicTrack!.artist}',
+                          style: const TextStyle(
+                            color: AppTheme.iconGreen,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Clear button
+                  GestureDetector(
+                    onTap: () {
+                      _stopMusicPreview();
+                      setState(() => _selectedMusicTrack = null);
+                    },
+                    child: Icon(
+                      Icons.close,
+                      color: AppTheme.iconGreen.withValues(alpha: 0.7),
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildDurationSection() {
-    final durations = ['15s', '30s', '60s', '120s'];
+  Widget _buildDurationSection(bool isDarkMode) {
+    final durations = ['15s', '30s', '60s', '90s', '120s'];
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Video Duration',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: AppTheme.textWhite,
+            color: isDarkMode ? Colors.white : AppTheme.textWhite,
           ),
         ),
         const SizedBox(height: 12),
@@ -916,13 +992,16 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
               child: GestureDetector(
                 onTap: () => setState(() => _selectedDuration = duration),
                 child: Container(
-                  margin: EdgeInsets.only(right: duration != '120s' ? 10 : 0),
+                  margin: EdgeInsets.only(right: duration != '120s' ? 8 : 0),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppTheme.iconPurple
-                        : Colors.white.withValues(alpha: 0.15),
+                        : Colors.white.withValues(alpha: isDarkMode ? 0.1 : 0.15),
                     borderRadius: BorderRadius.circular(12),
+                    border: isSelected 
+                        ? null 
+                        : Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
                   child: Center(
                     child: Text(
@@ -930,7 +1009,7 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        fontSize: 14,
+                        fontSize: 13,
                       ),
                     ),
                   ),
@@ -943,8 +1022,8 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
     );
   }
 
-  Widget _buildGenerateButton() {
-    final canGenerate = _selectedMedia.isNotEmpty && !_isGenerating;
+  Widget _buildGenerateButton(int mediaCount, bool isDarkMode) {
+    final canGenerate = mediaCount > 0 && !_isGenerating;
     
     return GestureDetector(
       onTap: canGenerate ? _generateVideo : null,
@@ -953,7 +1032,9 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
           gradient: canGenerate 
-              ? AppTheme.videoMemoriesGradient
+              ? (isDarkMode 
+                  ? const LinearGradient(colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)])
+                  : AppTheme.videoMemoriesGradient)
               : LinearGradient(
                   colors: [Colors.grey[600]!, Colors.grey[700]!],
                 ),
@@ -992,7 +1073,9 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
                   ? 'Creating Video...' 
                   : _isGenerated 
                       ? 'Create New Video'
-                      : 'Generate Video (${_selectedMedia.length} items)',
+                      : mediaCount > 0 
+                          ? 'Generate Video ($mediaCount items)'
+                          : 'Add Media First',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -1006,10 +1089,12 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
   }
 
   Future<void> _generateVideo() async {
-    if (_selectedMedia.isEmpty) {
+    final mediaCount = _getMediaCount();
+    
+    if (mediaCount == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please add some media first'),
+          content: const Text('Please add photos or videos first from the gallery screens'),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1017,6 +1102,9 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
       );
       return;
     }
+
+    // Stop music preview before generating
+    await _stopMusicPreview();
 
     setState(() {
       _isGenerating = true;
@@ -1037,6 +1125,12 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
         _isGenerating = false;
         _isGenerated = true;
       });
+      
+      // Show success message with music URL info
+      final musicInfo = _selectedMusicTrack != null 
+          ? '${_selectedMusicTrack!.name} (${_selectedMusicTrack!.artist})'
+          : 'No Music';
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -1053,7 +1147,7 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      '$_selectedStyle style • $_selectedDuration • $_selectedMusic music',
+                      '$_selectedStyle style • $_selectedDuration • $musicInfo',
                       style: const TextStyle(fontSize: 12),
                     ),
                   ],
@@ -1068,6 +1162,53 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with SingleTi
         ),
       );
     }
+  }
+}
+
+class _MediaCountItem extends StatelessWidget {
+  final IconData icon;
+  final int count;
+  final String label;
+  final Color color;
+
+  const _MediaCountItem({
+    required this.icon,
+    required this.count,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: color, size: 22),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          count.toString(),
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.white.withValues(alpha: 0.7),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -1105,74 +1246,6 @@ class _ActionChip extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AddMediaOption extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _AddMediaOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios, color: color, size: 18),
           ],
         ),
       ),

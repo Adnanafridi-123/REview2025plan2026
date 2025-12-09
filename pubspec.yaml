@@ -33,6 +33,10 @@ dependencies:
   image_picker: 1.0.4
   video_player: 2.8.1
   
+  # Audio Player for music preview
+  audioplayers: 5.2.1
+  just_audio: 0.9.36
+  
   # File handling
   permission_handler: 11.1.0
   
