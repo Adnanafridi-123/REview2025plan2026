@@ -7,6 +7,11 @@ import 'calendar_screen.dart';
 import 'analytics_screen.dart';
 import 'badges_screen.dart';
 import 'weekly_review_screen.dart';
+import 'vision_board_screen.dart';
+import 'health_tracker_screen.dart';
+import 'financial_goals_screen.dart';
+import 'bucket_list_screen.dart';
+import 'gratitude_journal_screen.dart';
 
 class PlanMenuScreen extends StatelessWidget {
   const PlanMenuScreen({super.key});
@@ -19,7 +24,7 @@ class PlanMenuScreen extends StatelessWidget {
         body: SafeArea(
           child: Column(
             children: [
-              // App Bar - EXACT from video
+              // App Bar
               _buildAppBar(context),
               
               // Menu List
@@ -28,7 +33,7 @@ class PlanMenuScreen extends StatelessWidget {
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.all(AppTheme.screenPadding),
                   children: [
-                    // Header - EXACT from video
+                    // Header
                     const Text(
                       'Plan 2026',
                       style: TextStyle(
@@ -39,7 +44,7 @@ class PlanMenuScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Set goals and build habits',
+                      'Apne khwab poore karein',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppTheme.textWhite.withValues(alpha: 0.7),
@@ -47,10 +52,81 @@ class PlanMenuScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
                     
-                    // 6 Menu Cards - EXACT from video
+                    // ⭐ NEW: Vision Board
+                    _PlanMenuCard(
+                      emoji: '📌',
+                      title: 'Vision Board',
+                      subtitle: 'Apne khwab visualize karein',
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                      ),
+                      onTap: () => _navigateTo(context, const VisionBoardScreen()),
+                    ),
+                    
+                    // ⭐ NEW: Health Tracker
+                    _PlanMenuCard(
+                      emoji: '🏃',
+                      title: 'Health Tracker',
+                      subtitle: 'Paani, neend, exercise track karein',
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF00C9FF), Color(0xFF92FE9D)],
+                      ),
+                      onTap: () => _navigateTo(context, const HealthTrackerScreen()),
+                    ),
+                    
+                    // ⭐ NEW: Financial Goals
+                    _PlanMenuCard(
+                      emoji: '💰',
+                      title: 'Financial Goals',
+                      subtitle: 'Savings aur budget track karein',
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
+                      ),
+                      onTap: () => _navigateTo(context, const FinancialGoalsScreen()),
+                    ),
+                    
+                    // ⭐ NEW: Bucket List
+                    _PlanMenuCard(
+                      emoji: '✨',
+                      title: 'Bucket List',
+                      subtitle: 'Zindagi ke khwab poore karein',
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFf857a6), Color(0xFFff5858)],
+                      ),
+                      onTap: () => _navigateTo(context, const BucketListScreen()),
+                    ),
+                    
+                    // ⭐ NEW: Gratitude Journal
+                    _PlanMenuCard(
+                      emoji: '🙏',
+                      title: 'Gratitude Journal',
+                      subtitle: 'Rozana shukar guzar hon',
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFA726), Color(0xFFFF7043)],
+                      ),
+                      onTap: () => _navigateTo(context, const GratitudeJournalScreen()),
+                    ),
+                    
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        children: [
+                          Expanded(child: Divider(color: Colors.white24)),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              'Core Features',
+                              style: TextStyle(color: Colors.white54, fontSize: 12),
+                            ),
+                          ),
+                          Expanded(child: Divider(color: Colors.white24)),
+                        ],
+                      ),
+                    ),
+                    
                     // 1. Goals
                     _PlanMenuCard(
-                      icon: Icons.gps_fixed,
+                      emoji: '🎯',
                       title: 'Goals',
                       subtitle: 'Set and track your targets',
                       gradient: AppTheme.goalsGradient,
@@ -58,7 +134,7 @@ class PlanMenuScreen extends StatelessWidget {
                     ),
                     // 2. Habits
                     _PlanMenuCard(
-                      icon: Icons.refresh,
+                      emoji: '🔄',
                       title: 'Habits',
                       subtitle: 'Build daily routines',
                       gradient: AppTheme.habitsGradient,
@@ -66,7 +142,7 @@ class PlanMenuScreen extends StatelessWidget {
                     ),
                     // 3. Calendar
                     _PlanMenuCard(
-                      icon: Icons.calendar_month,
+                      emoji: '📅',
                       title: 'Calendar',
                       subtitle: 'View your schedule',
                       gradient: AppTheme.calendarGradient,
@@ -74,7 +150,7 @@ class PlanMenuScreen extends StatelessWidget {
                     ),
                     // 4. Analytics
                     _PlanMenuCard(
-                      icon: Icons.show_chart,
+                      emoji: '📊',
                       title: 'Analytics',
                       subtitle: 'Track your progress',
                       gradient: AppTheme.analyticsGradient,
@@ -82,7 +158,7 @@ class PlanMenuScreen extends StatelessWidget {
                     ),
                     // 5. Badges
                     _PlanMenuCard(
-                      icon: Icons.workspace_premium,
+                      emoji: '🏆',
                       title: 'Badges',
                       subtitle: 'Earn rewards',
                       gradient: AppTheme.badgesGradient,
@@ -90,7 +166,7 @@ class PlanMenuScreen extends StatelessWidget {
                     ),
                     // 6. Weekly Review
                     _PlanMenuCard(
-                      icon: Icons.rate_review,
+                      emoji: '📝',
                       title: 'Weekly Review',
                       subtitle: 'Reflect and plan ahead',
                       gradient: AppTheme.weeklyReviewGradient,
@@ -127,16 +203,16 @@ class PlanMenuScreen extends StatelessWidget {
   }
 }
 
-// Menu Card Widget - EXACT from video (same style as Review 2025 cards)
+// Menu Card Widget - Updated with emoji support
 class _PlanMenuCard extends StatelessWidget {
-  final IconData icon;
+  final String emoji;
   final String title;
   final String subtitle;
   final LinearGradient gradient;
   final VoidCallback onTap;
 
   const _PlanMenuCard({
-    required this.icon,
+    required this.emoji,
     required this.title,
     required this.subtitle,
     required this.gradient,
@@ -165,7 +241,7 @@ class _PlanMenuCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Row(
             children: [
-              // Icon - EXACT from video
+              // Emoji Icon
               Container(
                 width: 50,
                 height: 50,
@@ -173,14 +249,12 @@ class _PlanMenuCard extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  icon,
-                  color: AppTheme.textWhite,
-                  size: 26,
+                child: Center(
+                  child: Text(emoji, style: const TextStyle(fontSize: 26)),
                 ),
               ),
               const SizedBox(width: 16),
-              // Title & Subtitle - EXACT from video
+              // Title & Subtitle
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -205,7 +279,7 @@ class _PlanMenuCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Arrow - EXACT from video
+              // Arrow
               Container(
                 width: 36,
                 height: 36,
