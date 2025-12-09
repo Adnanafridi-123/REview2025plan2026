@@ -21,7 +21,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     
     <application
-        android:label="Reflect and Plan"
+        android:label="Reflect &amp; Plan"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
@@ -55,6 +55,10 @@
         </intent>
     </queries>
 </manifest>
+
+
+
+
 
 
 

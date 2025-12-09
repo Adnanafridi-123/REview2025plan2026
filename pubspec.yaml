@@ -39,6 +39,9 @@ dependencies:
   # File handling
   permission_handler: 11.1.0
   
+  # Gallery Access for auto-loading 2025 photos/videos
+  photo_manager: 3.0.0
+  
   # HTTP for downloading images
   http: 0.13.6
   

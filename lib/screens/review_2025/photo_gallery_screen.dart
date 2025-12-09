@@ -1,10 +1,10 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../../services/media_service.dart';
-import '../../models/media_item.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../../providers/media_cache_provider.dart';
 import '../../widgets/beautiful_back_button.dart';
+import 'video_memories_screen.dart';
 
 class PhotoGalleryScreen extends StatefulWidget {
   const PhotoGalleryScreen({super.key});
@@ -14,391 +14,283 @@ class PhotoGalleryScreen extends StatefulWidget {
 }
 
 class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
-  int? _selectedMonth;
-  bool _isLoading = false;
-  List<MediaItem> _devicePhotos = [];
+  final MediaCacheProvider _cache = MediaCacheProvider();
+  String _selectedMonth = 'All';
+  bool _isLoading = true;
+  bool _selectionMode = false;
+  bool _hasPermission = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadPhotos();
+    _requestPermissionAndLoad();
   }
 
-  Future<void> _loadPhotos() async {
-    setState(() => _isLoading = true);
-    try {
-      _devicePhotos = MediaService.getAllPhotos();
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Error loading photos: $e');
-      }
-    }
-    setState(() => _isLoading = false);
-  }
+  Future<void> _requestPermissionAndLoad() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-  Future<void> _pickPhotoFromGallery() async {
-    setState(() => _isLoading = true);
     try {
-      final photo = await MediaService.pickPhotoFromGallery();
-      if (photo != null) {
-        _devicePhotos = MediaService.getAllPhotos();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Photo added successfully!'),
-              backgroundColor: const Color(0xFF8C52FF),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
-        }
+      // Request permission
+      final permission = await PhotoManager.requestPermissionExtend();
+      
+      if (permission.isAuth) {
+        _hasPermission = true;
+        await _cache.loadPhotos();
+      } else {
+        _hasPermission = false;
+        _errorMessage = 'Gallery permission required to view your 2025 photos';
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error adding photo: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _errorMessage = 'Error loading photos: $e';
     }
-    setState(() => _isLoading = false);
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
-  Future<void> _pickMultiplePhotos() async {
+  Future<void> _refreshPhotos() async {
     setState(() => _isLoading = true);
-    try {
-      final photos = await MediaService.pickMultiplePhotos();
-      if (photos.isNotEmpty) {
-        _devicePhotos = MediaService.getAllPhotos();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${photos.length} photos added successfully!'),
-              backgroundColor: const Color(0xFF8C52FF),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error adding photos: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-    setState(() => _isLoading = false);
-  }
-
-  Future<void> _takePhotoWithCamera() async {
-    setState(() => _isLoading = true);
-    try {
-      final photo = await MediaService.takePhotoWithCamera();
-      if (photo != null) {
-        _devicePhotos = MediaService.getAllPhotos();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Photo captured successfully!'),
-              backgroundColor: const Color(0xFF00C9FF),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error capturing photo: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-    setState(() => _isLoading = false);
-  }
-
-  Future<void> _deletePhoto(String id) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Photo'),
-        content: const Text('Are you sure you want to delete this photo?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await MediaService.deletePhoto(id);
-      _devicePhotos = MediaService.getAllPhotos();
-      setState(() {});
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Photo deleted'),
-            backgroundColor: Colors.red[400],
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
+    await _cache.refreshPhotos();
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
-  void _showAddPhotoOptions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  void _toggleSelectionMode() {
+    setState(() {
+      _selectionMode = !_selectionMode;
+      if (!_selectionMode) {
+        _cache.clearSelection();
+      }
+    });
+  }
+
+  void _togglePhotoSelection(String assetId) {
+    _cache.togglePhotoSelection(assetId);
+    setState(() {});
+  }
+
+  void _createVideoFromSelection() {
+    if (_cache.selectedCount == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please select at least one photo'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Add Photos',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF333333),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Choose how you want to add photos',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 32),
-            // Options
-            Row(
-              children: [
-                Expanded(
-                  child: _OptionCard(
-                    icon: Icons.camera_alt,
-                    label: 'Camera',
-                    subtitle: 'Take a photo',
-                    color: const Color(0xFF00C9FF),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _takePhotoWithCamera();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _OptionCard(
-                    icon: Icons.photo_library,
-                    label: 'Gallery',
-                    subtitle: 'Pick one photo',
-                    color: const Color(0xFF8C52FF),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _pickPhotoFromGallery();
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _OptionCard(
-              icon: Icons.photo_library_outlined,
-              label: 'Select Multiple',
-              subtitle: 'Pick multiple photos at once',
-              color: const Color(0xFFFF5E62),
-              onTap: () {
-                Navigator.pop(context);
-                _pickMultiplePhotos();
-              },
-              isWide: true,
-            ),
-            const SizedBox(height: 16),
-          ],
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VideoMemoriesScreen(
+          selectedPhotoIds: _cache.selectedPhotoIds.toList(),
         ),
       ),
-    );
+    ).then((_) {
+      // Clear selection after returning
+      _cache.clearSelection();
+      setState(() => _selectionMode = false);
+    });
+  }
+
+  List<AssetEntity> _getFilteredPhotos() {
+    if (_selectedMonth == 'All') {
+      return _cache.getAllPhotosFlat();
+    }
+    return _cache.photosByMonth[_selectedMonth] ?? [];
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredPhotos = _selectedMonth == null
-        ? _devicePhotos
-        : _devicePhotos.where((p) => p.date.month == _selectedMonth).toList();
-
+    final photos = _getFilteredPhotos();
+    
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF0F5), Color(0xFFFFE4E1)],
+            colors: [Color(0xFF667EEA), Color(0xFF764BA2), Color(0xFFf093fb)],
           ),
         ),
         child: SafeArea(
-          child: Stack(
+          child: Column(
             children: [
-              Column(
-                children: [
-                  // App Bar
-                  _buildAppBar(context),
-                  
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'My Photos',
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF333333),
-                                ),
-                              ),
-                              Text(
-                                '${filteredPhotos.length} photos captured',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF8C52FF),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: IconButton(
-                            onPressed: _showAddPhotoOptions,
-                            icon: const Icon(Icons.add_photo_alternate, color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // Month Filter
-                  _buildMonthFilter(),
-                  const SizedBox(height: 16),
-                  
-                  // Content
-                  Expanded(
-                    child: filteredPhotos.isEmpty
-                        ? _buildEmptyState()
-                        : _buildPhotoGrid(filteredPhotos),
-                  ),
-                ],
-              ),
+              // App Bar
+              _buildAppBar(),
               
-              // Loading overlay
-              if (_isLoading)
-                Container(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  child: const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8C52FF)),
-                    ),
-                  ),
-                ),
+              // Month Filter
+              if (_hasPermission && _cache.photoMonths.isNotEmpty)
+                _buildMonthFilter(),
+              
+              // Content
+              Expanded(
+                child: _isLoading
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(color: Colors.white),
+                            SizedBox(height: 16),
+                            Text(
+                              'Loading 2025 photos from gallery...',
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      )
+                    : !_hasPermission
+                        ? _buildPermissionRequest()
+                        : photos.isEmpty
+                            ? _buildEmptyState()
+                            : RefreshIndicator(
+                                onRefresh: _refreshPhotos,
+                                color: const Color(0xFF667EEA),
+                                child: _buildPhotoGrid(photos),
+                              ),
+              ),
             ],
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddPhotoOptions,
-        backgroundColor: const Color(0xFFFF5E62),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Photo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-      ),
+      // Create Video FAB
+      floatingActionButton: _selectionMode && _cache.selectedCount > 0
+          ? FloatingActionButton.extended(
+              onPressed: _createVideoFromSelection,
+              backgroundColor: const Color(0xFF8E2DE2),
+              icon: const Icon(Icons.movie_creation, color: Colors.white),
+              label: Text(
+                'Create Video (${_cache.selectedCount})',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            )
+          : null,
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
         children: [
-          const LightBackButton(),
+          BeautifulBackButton(
+            isDarkMode: false,
+            onTap: () => Navigator.pop(context),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _selectionMode 
+                      ? '${_cache.selectedCount} Selected'
+                      : 'Photos 2025',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  '${_cache.totalPhotos} photos from your gallery',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Selection Mode Toggle
+          IconButton(
+            onPressed: _toggleSelectionMode,
+            icon: Icon(
+              _selectionMode ? Icons.close : Icons.checklist,
+              color: Colors.white,
+              size: 26,
+            ),
+            tooltip: _selectionMode ? 'Cancel Selection' : 'Select Photos',
+          ),
+          // Refresh Button
+          IconButton(
+            onPressed: _refreshPhotos,
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            tooltip: 'Refresh',
+          ),
         ],
       ),
     );
   }
 
   Widget _buildMonthFilter() {
-    final months = ['All', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    return SizedBox(
-      height: 36,
+    return Container(
+      height: 44,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: months.length,
+        itemCount: _cache.photoMonths.length,
         itemBuilder: (context, index) {
-          final isAll = index == 0;
-          final month = isAll ? null : index;
+          final month = _cache.photoMonths[index];
           final isSelected = _selectedMonth == month;
+          final count = month == 'All' 
+              ? _cache.totalPhotos 
+              : (_cache.photosByMonth[month]?.length ?? 0);
           
           return GestureDetector(
             onTap: () => setState(() => _selectedMonth = month),
             child: Container(
               margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF8C52FF) : Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 4,
+                color: isSelected 
+                    ? Colors.white 
+                    : Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? Colors.white : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    month == 'All' ? 'All' : month.split(' ')[0],
+                    style: TextStyle(
+                      color: isSelected ? const Color(0xFF667EEA) : Colors.white,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isSelected 
+                          ? const Color(0xFF667EEA).withValues(alpha: 0.2)
+                          : Colors.white.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$count',
+                      style: TextStyle(
+                        color: isSelected ? const Color(0xFF667EEA) : Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
-              ),
-              child: Text(
-                months[index],
-                style: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF666666),
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  fontSize: 13,
-                ),
               ),
             ),
           );
@@ -407,360 +299,343 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildPermissionRequest() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Large Icon Circle
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFF5E62).withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.photo_library,
+                size: 64,
+                color: Colors.white,
+              ),
             ),
-            child: const Icon(
-              Icons.photo_library_outlined,
-              size: 60,
-              color: Color(0xFFFF5E62),
+            const SizedBox(height: 24),
+            const Text(
+              'Gallery Access Required',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'No Photos Yet',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF333333),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              'Start capturing your 2025 moments!\nTap the button below to add your first photo from your device.',
+            const SizedBox(height: 12),
+            Text(
+              _errorMessage ?? 'We need access to your gallery to show your 2025 photos',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF888888),
+                fontSize: 15,
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
-          ),
-          const SizedBox(height: 32),
-          // Action Buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _ActionButton(
-                icon: Icons.camera_alt,
-                label: 'Capture',
-                color: const Color(0xFF00C9FF),
-                onTap: _takePhotoWithCamera,
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await openAppSettings();
+              },
+              icon: const Icon(Icons.settings),
+              label: const Text('Open Settings'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF667EEA),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              const SizedBox(width: 16),
-              _ActionButton(
-                icon: Icons.photo_library,
-                label: 'From Gallery',
-                color: const Color(0xFF8C52FF),
-                onTap: _pickPhotoFromGallery,
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _requestPermissionAndLoad,
+              child: const Text(
+                'Try Again',
+                style: TextStyle(color: Colors.white),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPhotoGrid(List<MediaItem> photos) {
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.photo_camera,
+                size: 64,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'No 2025 Photos Yet',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _selectedMonth == 'All'
+                  ? 'Your 2025 photos will appear here automatically'
+                  : 'No photos found for $_selectedMonth',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _refreshPhotos,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF667EEA),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhotoGrid(List<AssetEntity> photos) {
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
+        crossAxisSpacing: 4,
+        mainAxisSpacing: 4,
       ),
       itemCount: photos.length,
       itemBuilder: (context, index) {
         final photo = photos[index];
+        final isSelected = _cache.isPhotoSelected(photo.id);
+        
         return GestureDetector(
-          onTap: () => _showPhotoDetail(photo),
-          onLongPress: () => _deletePhoto(photo.id),
-          child: Hero(
-            tag: 'photo_${photo.id}',
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: kIsWeb
-                    ? Image.network(
-                        photo.path,
+          onTap: () {
+            if (_selectionMode) {
+              _togglePhotoSelection(photo.id);
+            } else {
+              _openPhotoViewer(photos, index);
+            }
+          },
+          onLongPress: () {
+            if (!_selectionMode) {
+              setState(() => _selectionMode = true);
+            }
+            _togglePhotoSelection(photo.id);
+          },
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Photo Thumbnail
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: FutureBuilder<Uint8List?>(
+                  future: photo.thumbnailDataWithSize(const ThumbnailSize(300, 300)),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data != null) {
+                      return Image.memory(
+                        snapshot.data!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildPlaceholder(),
-                      )
-                    : Image.file(
-                        File(photo.path),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                      );
+                    }
+                    return Container(
+                      color: Colors.grey[800],
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white54,
+                        ),
                       ),
+                    );
+                  },
+                ),
               ),
-            ),
+              
+              // Selection Overlay
+              if (_selectionMode)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: isSelected 
+                          ? const Color(0xFF8E2DE2).withValues(alpha: 0.4)
+                          : Colors.black.withValues(alpha: 0.2),
+                      border: isSelected
+                          ? Border.all(color: const Color(0xFF8E2DE2), width: 3)
+                          : null,
+                    ),
+                  ),
+                ),
+              
+              // Selection Checkbox
+              if (_selectionMode)
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: isSelected 
+                          ? const Color(0xFF8E2DE2) 
+                          : Colors.white.withValues(alpha: 0.8),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? Colors.white : Colors.grey,
+                        width: 2,
+                      ),
+                    ),
+                    child: isSelected
+                        ? const Icon(Icons.check, color: Colors.white, size: 16)
+                        : null,
+                  ),
+                ),
+              
+              // Date Badge (when not in selection mode)
+              if (!_selectionMode)
+                Positioned(
+                  bottom: 4,
+                  left: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${photo.createDateTime.day}/${photo.createDateTime.month}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildPlaceholder() {
-    return Container(
-      color: const Color(0xFFF0F0F0),
-      child: const Icon(Icons.photo, color: Color(0xFFCCCCCC), size: 40),
-    );
-  }
-
-  void _showPhotoDetail(MediaItem photo) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.9),
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Close button and delete button
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                    _deletePhoto(photo.id);
-                  },
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.8),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.delete, color: Colors.white, size: 22),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.close, color: Colors.white, size: 22),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Image
-            Hero(
-              tag: 'photo_${photo.id}',
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: kIsWeb
-                    ? Image.network(
-                        photo.path,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => _buildPlaceholder(),
-                      )
-                    : Image.file(
-                        File(photo.path),
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => _buildPlaceholder(),
-                      ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Date info
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.calendar_today, color: Colors.white70, size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    DateFormat('MMMM d, yyyy').format(photo.date),
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-          ],
+  void _openPhotoViewer(List<AssetEntity> photos, int initialIndex) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PhotoViewerScreen(
+          photos: photos,
+          initialIndex: initialIndex,
         ),
       ),
     );
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
+// Full screen photo viewer
+class PhotoViewerScreen extends StatefulWidget {
+  final List<AssetEntity> photos;
+  final int initialIndex;
 
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
+  const PhotoViewerScreen({
+    super.key,
+    required this.photos,
+    required this.initialIndex,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.4),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  State<PhotoViewerScreen> createState() => _PhotoViewerScreenState();
 }
 
-class _OptionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-  final bool isWide;
+class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
+  late PageController _pageController;
+  late int _currentIndex;
 
-  const _OptionCard({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-    this.isWide = false,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(
+          '${_currentIndex + 1} / ${widget.photos.length}',
+          style: const TextStyle(color: Colors.white),
         ),
-        child: isWide
-            ? Row(
-                children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(icon, color: Colors.white, size: 26),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: color,
-                          ),
-                        ),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: widget.photos.length,
+        onPageChanged: (index) {
+          setState(() => _currentIndex = index);
+        },
+        itemBuilder: (context, index) {
+          final photo = widget.photos[index];
+          return FutureBuilder<Uint8List?>(
+            future: photo.thumbnailDataWithSize(const ThumbnailSize(1080, 1080)),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data != null) {
+                return InteractiveViewer(
+                  child: Center(
+                    child: Image.memory(
+                      snapshot.data!,
+                      fit: BoxFit.contain,
                     ),
                   ),
-                  Icon(Icons.arrow_forward_ios, color: color, size: 18),
-                ],
-              )
-            : Column(
-                children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(icon, color: Colors.white, size: 26),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
+                );
+              }
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              );
+            },
+          );
+        },
       ),
     );
   }
