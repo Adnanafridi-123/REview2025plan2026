@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:pedometer/pedometer.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../models/health_record.dart';
 import '../../widgets/beautiful_back_button.dart';
 
@@ -11,16 +14,44 @@ class HealthTrackerScreen extends StatefulWidget {
   State<HealthTrackerScreen> createState() => _HealthTrackerScreenState();
 }
 
-class _HealthTrackerScreenState extends State<HealthTrackerScreen> {
+class _HealthTrackerScreenState extends State<HealthTrackerScreen> with TickerProviderStateMixin {
   late Box<HealthRecord> _healthBox;
   bool _isLoading = true;
   DateTime _selectedDate = DateTime.now();
   HealthRecord? _todayRecord;
 
+  // Step Counter Variables
+  int _currentSteps = 0;
+  int _initialSteps = 0;
+  bool _stepCountingActive = false;
+  bool _hasActivityPermission = false;
+  
+  // Pedometer subscriptions (pedometer v4.1.1 uses static methods)
+  StreamSubscription<StepCount>? _stepCountSubscription;
+  StreamSubscription<PedestrianStatus>? _pedestrianStatusSubscription;
+  String _pedestrianStatus = 'unknown';
+  
+  // Animation controller for step counter
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
   @override
   void initState() {
     super.initState();
+    _initAnimations();
     _initHive();
+    _requestActivityPermission();
+  }
+
+  void _initAnimations() {
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+    
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
   }
 
   Future<void> _initHive() async {
@@ -30,6 +61,123 @@ class _HealthTrackerScreenState extends State<HealthTrackerScreen> {
     _healthBox = await Hive.openBox<HealthRecord>('health_records');
     _loadTodayRecord();
     setState(() => _isLoading = false);
+  }
+
+  Future<void> _requestActivityPermission() async {
+    // Request activity recognition permission for step counting
+    final status = await Permission.activityRecognition.request();
+    
+    if (status.isGranted) {
+      setState(() => _hasActivityPermission = true);
+      _initPedometer();
+    } else if (status.isPermanentlyDenied) {
+      // Show dialog to open settings
+      if (mounted) {
+        _showPermissionDialog();
+      }
+    }
+  }
+
+  void _showPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Text('👟', style: TextStyle(fontSize: 24)),
+            SizedBox(width: 8),
+            Text('Step Counter Permission'),
+          ],
+        ),
+        content: const Text(
+          'Step counting ke liye Physical Activity permission chahiye.\n\n'
+          'Settings mein jaa kar permission allow karein.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF50),
+            ),
+            child: const Text('Open Settings', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _initPedometer() {
+    // Listen to step count stream (pedometer v4.1.1 returns StepCount objects)
+    _stepCountSubscription = Pedometer.stepCountStream.listen(
+      _onStepCount,
+      onError: _onStepCountError,
+    );
+
+    // Listen to pedestrian status (walking/stopped)
+    _pedestrianStatusSubscription = Pedometer.pedestrianStatusStream.listen(
+      _onPedestrianStatusChanged,
+      onError: _onPedestrianStatusError,
+    );
+
+    setState(() => _stepCountingActive = true);
+  }
+
+  void _onStepCount(StepCount event) {
+    // pedometer v4.1.1 returns StepCount objects with .steps property
+    // First time getting steps, set as initial
+    if (_initialSteps == 0) {
+      _initialSteps = event.steps;
+      // Load saved steps for today if any
+      if (_todayRecord != null && _todayRecord!.steps > 0) {
+        _initialSteps = event.steps - _todayRecord!.steps;
+      }
+    }
+
+    // Calculate steps taken since app started today
+    final stepsTakenToday = event.steps - _initialSteps;
+    
+    setState(() {
+      _currentSteps = stepsTakenToday;
+    });
+
+    // Save to today's record if it's today
+    final isToday = DateFormat('yyyy-MM-dd').format(_selectedDate) == 
+                   DateFormat('yyyy-MM-dd').format(DateTime.now());
+    if (isToday && _todayRecord != null) {
+      _todayRecord!.steps = stepsTakenToday;
+      _todayRecord!.save();
+    }
+  }
+
+  void _onStepCountError(error) {
+    debugPrint('Step count error: $error');
+    setState(() => _stepCountingActive = false);
+  }
+
+  void _onPedestrianStatusChanged(PedestrianStatus event) {
+    // PedestrianStatus has .status property (String: 'walking', 'stopped', 'unknown')
+    setState(() {
+      _pedestrianStatus = event.status;
+    });
+  }
+
+  void _onPedestrianStatusError(error) {
+    debugPrint('Pedestrian status error: $error');
+  }
+
+  @override
+  void dispose() {
+    _stepCountSubscription?.cancel();
+    _pedestrianStatusSubscription?.cancel();
+    _pulseController.dispose();
+    super.dispose();
   }
 
   void _loadTodayRecord() {
@@ -51,6 +199,18 @@ class _HealthTrackerScreenState extends State<HealthTrackerScreen> {
   void _updateRecord() {
     _todayRecord?.save();
     setState(() {});
+  }
+
+  // Calculate calories burned from steps
+  double _calculateCalories(int steps) {
+    // Average: 0.04 calories per step
+    return steps * 0.04;
+  }
+
+  // Calculate distance from steps (in km)
+  double _calculateDistance(int steps) {
+    // Average stride length: 0.762 meters
+    return (steps * 0.762) / 1000;
   }
 
   @override
@@ -270,9 +430,36 @@ class _HealthTrackerScreenState extends State<HealthTrackerScreen> {
   }
 
   Widget _buildTrackers() {
+    final isToday = DateFormat('yyyy-MM-dd').format(_selectedDate) == 
+                   DateFormat('yyyy-MM-dd').format(DateTime.now());
+    
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       children: [
+        // AUTOMATIC STEP COUNTER - Main Feature
+        if (isToday) _buildAutoStepCounter(),
+        
+        // Manual Step Tracker (for past days)
+        if (!isToday)
+          _TrackerCard(
+            emoji: '👟',
+            title: 'Qadam (Steps)',
+            subtitle: '${_todayRecord?.steps ?? 0}/10,000 steps',
+            value: (_todayRecord?.steps ?? 0).toDouble(),
+            maxValue: 10000,
+            color: const Color(0xFF4CAF50),
+            onIncrease: () {
+              _todayRecord?.steps = (_todayRecord?.steps ?? 0) + 500;
+              _updateRecord();
+            },
+            onDecrease: () {
+              if ((_todayRecord?.steps ?? 0) > 0) {
+                _todayRecord?.steps = (_todayRecord?.steps ?? 0) - 500;
+                _updateRecord();
+              }
+            },
+          ),
+        
         // Water Tracker
         _TrackerCard(
           emoji: '💧',
@@ -339,26 +526,6 @@ class _HealthTrackerScreenState extends State<HealthTrackerScreen> {
           },
         ),
         
-        // Steps Tracker
-        _TrackerCard(
-          emoji: '👟',
-          title: 'Qadam',
-          subtitle: '${_todayRecord?.steps ?? 0} steps',
-          value: (_todayRecord?.steps ?? 0).toDouble(),
-          maxValue: 10000,
-          color: const Color(0xFF4CAF50),
-          onIncrease: () {
-            _todayRecord?.steps = (_todayRecord?.steps ?? 0) + 500;
-            _updateRecord();
-          },
-          onDecrease: () {
-            if ((_todayRecord?.steps ?? 0) > 0) {
-              _todayRecord?.steps = (_todayRecord?.steps ?? 0) - 500;
-              _updateRecord();
-            }
-          },
-        ),
-        
         // Mood Tracker
         _buildMoodTracker(),
         
@@ -366,6 +533,261 @@ class _HealthTrackerScreenState extends State<HealthTrackerScreen> {
         _buildWeightTracker(),
       ],
     );
+  }
+
+  // Automatic Step Counter Widget - Beautiful Design
+  Widget _buildAutoStepCounter() {
+    final steps = _currentSteps > 0 ? _currentSteps : (_todayRecord?.steps ?? 0);
+    final goal = 10000;
+    final progress = (steps / goal).clamp(0.0, 1.0);
+    final calories = _calculateCalories(steps);
+    final distance = _calculateDistance(steps);
+    
+    final bool isWalking = _pedestrianStatus == 'walking';
+    
+    return AnimatedBuilder(
+      animation: _pulseAnimation,
+      builder: (context, child) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF4CAF50),
+                const Color(0xFF8BC34A),
+                const Color(0xFF4CAF50).withValues(alpha: 0.8),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text('👟', style: TextStyle(fontSize: 24)),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Auto Step Counter',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: _stepCountingActive 
+                                      ? (isWalking ? Colors.yellow : Colors.white)
+                                      : Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _stepCountingActive 
+                                    ? (isWalking ? 'Chal rahe ho! 🚶' : 'Active') 
+                                    : 'Permission Required',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  if (!_hasActivityPermission)
+                    GestureDetector(
+                      onTap: _requestActivityPermission,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Enable',
+                          style: TextStyle(
+                            color: Color(0xFF4CAF50),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Circular Step Counter
+              Transform.scale(
+                scale: isWalking ? _pulseAnimation.value : 1.0,
+                child: SizedBox(
+                  width: 160,
+                  height: 160,
+                  child: Stack(
+                    children: [
+                      // Background Circle
+                      SizedBox(
+                        width: 160,
+                        height: 160,
+                        child: CircularProgressIndicator(
+                          value: 1,
+                          strokeWidth: 12,
+                          backgroundColor: Colors.transparent,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                      ),
+                      // Progress Circle
+                      SizedBox(
+                        width: 160,
+                        height: 160,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 12,
+                          backgroundColor: Colors.transparent,
+                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                          strokeCap: StrokeCap.round,
+                        ),
+                      ),
+                      // Center Content
+                      Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _formatNumber(steps),
+                              style: const TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const Text(
+                              'QADAM',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white70,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Goal Progress
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  steps >= goal 
+                      ? '🎉 Goal Complete! Mubarak Ho!' 
+                      : '${(progress * 100).toInt()}% - ${_formatNumber(goal - steps)} more to go',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Stats Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildStatItem('🔥', '${calories.toStringAsFixed(0)}', 'Calories'),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
+                  _buildStatItem('📍', '${distance.toStringAsFixed(2)}', 'KM'),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
+                  _buildStatItem('🎯', '10,000', 'Goal'),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatItem(String emoji, String value, String label) {
+    return Column(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 20)),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.white.withValues(alpha: 0.8),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatNumber(int number) {
+    if (number >= 1000) {
+      return '${(number / 1000).toStringAsFixed(1)}k'.replaceAll('.0k', 'k');
+    }
+    return number.toString();
   }
 
   Widget _buildMoodTracker() {
