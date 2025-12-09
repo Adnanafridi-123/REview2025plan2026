@@ -4,6 +4,7 @@ import 'package:photo_manager/photo_manager.dart';
 
 /// Global media cache provider to persist photos/videos data across screens
 /// This prevents reloading when user goes back and returns
+/// IMPROVED: Enhanced deduplication using global tracking sets
 class MediaCacheProvider extends ChangeNotifier {
   // Singleton pattern
   static final MediaCacheProvider _instance = MediaCacheProvider._internal();
@@ -25,6 +26,10 @@ class MediaCacheProvider extends ChangeNotifier {
   // Selected items for video creation
   final Set<String> _selectedPhotoIds = {};
   final Set<String> _selectedVideoIds = {};
+  
+  // Global deduplication tracking (persists across loads)
+  final Set<String> _globalPhotoIds = {};
+  final Set<String> _globalVideoIds = {};
 
   // Getters for photos
   Map<String, List<AssetEntity>> get photosByMonth => _photosByMonth;
@@ -44,7 +49,7 @@ class MediaCacheProvider extends ChangeNotifier {
   int get selectedCount => _selectedPhotoIds.length + _selectedVideoIds.length;
   bool get hasSelection => selectedCount > 0;
 
-  /// Load photos from gallery (with caching)
+  /// Load photos from gallery (with caching and robust deduplication)
   Future<void> loadPhotos({bool forceRefresh = false}) async {
     // Return cached data if available and not forcing refresh
     if (_photosLoaded && !forceRefresh) {
@@ -57,6 +62,12 @@ class MediaCacheProvider extends ChangeNotifier {
       if (!permission.isAuth) {
         debugPrint('Photo permission denied');
         return;
+      }
+
+      // Clear previous data on force refresh
+      if (forceRefresh) {
+        _globalPhotoIds.clear();
+        _photosByMonth.clear();
       }
 
       final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
@@ -73,6 +84,7 @@ class MediaCacheProvider extends ChangeNotifier {
       );
 
       Map<String, List<AssetEntity>> photosByMonth = {};
+      Set<String> addedPhotoIds = {}; // Track unique IDs to prevent duplicates
       int totalCount = 0;
 
       for (final album in albums) {
@@ -84,11 +96,25 @@ class MediaCacheProvider extends ChangeNotifier {
           );
 
           for (final asset in assets) {
+            // IMPROVED: Triple-check deduplication
+            // 1. Check local set for this load
+            // 2. Check global set across all loads
+            // 3. Check existing photosByMonth
+            if (addedPhotoIds.contains(asset.id)) continue;
+            if (_globalPhotoIds.contains(asset.id)) continue;
+            
             final date = asset.createDateTime;
             if (date.year == 2025) {
               final monthKey = _getMonthKey(date);
               photosByMonth.putIfAbsent(monthKey, () => []);
+              
+              // Check if already exists in this month
+              final existsInMonth = photosByMonth[monthKey]!.any((p) => p.id == asset.id);
+              if (existsInMonth) continue;
+              
               photosByMonth[monthKey]!.add(asset);
+              addedPhotoIds.add(asset.id); // Mark as added locally
+              _globalPhotoIds.add(asset.id); // Mark as added globally
               totalCount++;
             }
           }
@@ -115,7 +141,7 @@ class MediaCacheProvider extends ChangeNotifier {
     }
   }
 
-  /// Load videos from gallery (with caching)
+  /// Load videos from gallery (with caching and robust deduplication)
   Future<void> loadVideos({bool forceRefresh = false}) async {
     if (_videosLoaded && !forceRefresh) {
       return;
@@ -127,6 +153,12 @@ class MediaCacheProvider extends ChangeNotifier {
       if (!permission.isAuth) {
         debugPrint('Video permission denied');
         return;
+      }
+
+      // Clear previous data on force refresh
+      if (forceRefresh) {
+        _globalVideoIds.clear();
+        _videosByMonth.clear();
       }
 
       final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
@@ -143,6 +175,7 @@ class MediaCacheProvider extends ChangeNotifier {
       );
 
       Map<String, List<AssetEntity>> videosByMonth = {};
+      Set<String> addedVideoIds = {}; // Track unique IDs to prevent duplicates
       int totalCount = 0;
 
       for (final album in albums) {
@@ -154,11 +187,25 @@ class MediaCacheProvider extends ChangeNotifier {
           );
 
           for (final asset in assets) {
+            // IMPROVED: Triple-check deduplication
+            // 1. Check local set for this load
+            // 2. Check global set across all loads
+            // 3. Check existing videosByMonth
+            if (addedVideoIds.contains(asset.id)) continue;
+            if (_globalVideoIds.contains(asset.id)) continue;
+            
             final date = asset.createDateTime;
             if (date.year == 2025) {
               final monthKey = _getMonthKey(date);
               videosByMonth.putIfAbsent(monthKey, () => []);
+              
+              // Check if already exists in this month
+              final existsInMonth = videosByMonth[monthKey]!.any((v) => v.id == asset.id);
+              if (existsInMonth) continue;
+              
               videosByMonth[monthKey]!.add(asset);
+              addedVideoIds.add(asset.id); // Mark as added locally
+              _globalVideoIds.add(asset.id); // Mark as added globally
               totalCount++;
             }
           }

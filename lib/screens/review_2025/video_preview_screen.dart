@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -35,28 +36,168 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
   int _currentImageIndex = 0;
   Timer? _slideTimer;
   
+  // Animation Controllers for Professional Effects
   late AnimationController _scaleController;
+  late AnimationController _fadeController;
+  late AnimationController _kenBurnsController;
+  late AnimationController _glowController;
+  late AnimationController _particleController;
+  
   late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _kenBurnsAnimation;
+  late Animation<double> _glowAnimation;
+  late Animation<double> _particleAnimation;
   
   List<String> _imagePaths = [];
+  
+  // Professional visual effect settings
+  final List<_ParticleData> _particles = [];
+  final math.Random _random = math.Random();
+  
+  // Style-specific effect config
+  late Map<String, dynamic> _currentEffectConfig;
   
   @override
   void initState() {
     super.initState();
-    
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
-      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
-    );
-    
+    _initializeAnimations();
+    _initializeEffects();
     _loadImages();
     
     Future.delayed(const Duration(milliseconds: 500), () {
       _startPreview();
     });
+  }
+
+  void _initializeAnimations() {
+    // Scale animation (Ken Burns zoom effect)
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
+    );
+    
+    // Fade animation for smooth transitions
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+    );
+    
+    // Ken Burns pan effect
+    _kenBurnsController = AnimationController(
+      duration: const Duration(milliseconds: 4000),
+      vsync: this,
+    );
+    _kenBurnsAnimation = Tween<double>(begin: -0.05, end: 0.05).animate(
+      CurvedAnimation(parent: _kenBurnsController, curve: Curves.easeInOut),
+    );
+    
+    // Glow pulse animation
+    _glowController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat(reverse: true);
+    _glowAnimation = Tween<double>(begin: 0.3, end: 0.8).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
+    
+    // Particle animation
+    _particleController = AnimationController(
+      duration: const Duration(seconds: 10),
+      vsync: this,
+    )..repeat();
+    _particleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_particleController);
+  }
+
+  void _initializeEffects() {
+    // Generate particles based on style
+    final styleName = widget.video.style.toString().split('.').last;
+    _currentEffectConfig = _getStyleEffectConfig(styleName);
+    
+    // Generate floating particles
+    for (int i = 0; i < 30; i++) {
+      _particles.add(_ParticleData(
+        x: _random.nextDouble(),
+        y: _random.nextDouble(),
+        size: 2 + _random.nextDouble() * 6,
+        speed: 0.2 + _random.nextDouble() * 0.5,
+        opacity: 0.3 + _random.nextDouble() * 0.4,
+      ));
+    }
+  }
+
+  Map<String, dynamic> _getStyleEffectConfig(String styleName) {
+    switch (styleName.toLowerCase()) {
+      case 'cinematic':
+        return {
+          'overlayColor': Colors.black.withValues(alpha: 0.3),
+          'glowColor': const Color(0xFF8E2DE2),
+          'particleColor': Colors.white,
+          'vignetteIntensity': 0.6,
+          'filmGrain': false,
+          'letterbox': true,
+        };
+      case 'epic':
+        return {
+          'overlayColor': Colors.deepOrange.withValues(alpha: 0.2),
+          'glowColor': const Color(0xFFFF6B6B),
+          'particleColor': Colors.orange,
+          'vignetteIntensity': 0.7,
+          'filmGrain': false,
+          'letterbox': true,
+        };
+      case 'romantic':
+        return {
+          'overlayColor': Colors.pink.withValues(alpha: 0.15),
+          'glowColor': const Color(0xFFFF6B8A),
+          'particleColor': Colors.pink.shade200,
+          'vignetteIntensity': 0.4,
+          'filmGrain': false,
+          'letterbox': false,
+        };
+      case 'vintage':
+        return {
+          'overlayColor': const Color(0xFFD4A574).withValues(alpha: 0.3),
+          'glowColor': const Color(0xFFB8860B),
+          'particleColor': const Color(0xFFF5DEB3),
+          'vignetteIntensity': 0.8,
+          'filmGrain': true,
+          'letterbox': false,
+        };
+      case 'neon':
+        return {
+          'overlayColor': Colors.purple.withValues(alpha: 0.2),
+          'glowColor': const Color(0xFF00F5FF),
+          'particleColor': const Color(0xFFFF00FF),
+          'vignetteIntensity': 0.5,
+          'filmGrain': false,
+          'letterbox': false,
+        };
+      case 'party':
+        return {
+          'overlayColor': Colors.transparent,
+          'glowColor': const Color(0xFFFFD700),
+          'particleColor': Colors.yellow,
+          'vignetteIntensity': 0.3,
+          'filmGrain': false,
+          'letterbox': false,
+        };
+      default:
+        return {
+          'overlayColor': Colors.black.withValues(alpha: 0.2),
+          'glowColor': const Color(0xFF667EEA),
+          'particleColor': Colors.white,
+          'vignetteIntensity': 0.5,
+          'filmGrain': false,
+          'letterbox': false,
+        };
+    }
   }
 
   void _loadImages() {
@@ -75,6 +216,10 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
   void dispose() {
     _slideTimer?.cancel();
     _scaleController.dispose();
+    _fadeController.dispose();
+    _kenBurnsController.dispose();
+    _glowController.dispose();
+    _particleController.dispose();
     MusicService.stop();
     super.dispose();
   }
@@ -88,25 +233,44 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
       MusicService.play(widget.video.backgroundMusic!);
     }
     
+    // Calculate time per image based on duration and number of images
     final msPerImage = (widget.video.durationSeconds * 1000) ~/ _imagePaths.length;
-    final timePerImage = Duration(milliseconds: msPerImage.clamp(1500, 5000));
+    final timePerImage = Duration(milliseconds: msPerImage.clamp(2000, 6000));
+    
+    // Start all animations
+    _fadeController.forward();
+    _scaleController.forward();
+    _kenBurnsController.forward();
     
     _slideTimer = Timer.periodic(timePerImage, (timer) {
       if (mounted) {
-        setState(() {
-          _currentImageIndex = (_currentImageIndex + 1) % _imagePaths.length;
-        });
-        _scaleController.forward().then((_) => _scaleController.reverse());
+        _transitionToNextImage();
       }
     });
+  }
+
+  void _transitionToNextImage() {
+    // Reset animations for smooth transition
+    _fadeController.reset();
+    _scaleController.reset();
+    _kenBurnsController.reset();
     
+    setState(() {
+      _currentImageIndex = (_currentImageIndex + 1) % _imagePaths.length;
+    });
+    
+    // Start animations again
+    _fadeController.forward();
     _scaleController.forward();
+    _kenBurnsController.forward();
   }
 
   void _pausePreview() {
     _slideTimer?.cancel();
     _slideTimer = null;
     MusicService.pause();
+    _scaleController.stop();
+    _kenBurnsController.stop();
     setState(() => _isPlaying = false);
   }
 
@@ -124,13 +288,12 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
     
     setState(() {
       _isSaving = true;
-      _saveMessage = 'Saving...';
+      _saveMessage = 'Preparing...';
     });
     
     _pausePreview();
     
     try {
-      // Get save directory
       final saveDir = await _getDownloadFolder();
       
       if (saveDir == null) {
@@ -144,7 +307,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
       
       int savedCount = 0;
       
-      // Save each image
       for (int i = 0; i < _imagePaths.length; i++) {
         setState(() {
           _saveMessage = 'Saving ${i + 1}/${_imagePaths.length}...';
@@ -156,7 +318,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
         
         try {
           if (url.startsWith('http')) {
-            // Download network image
             final response = await http.get(Uri.parse(url)).timeout(
               const Duration(seconds: 20),
             );
@@ -170,7 +331,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
               }
             }
           } else {
-            // Copy local file
             final sourceFile = File(url);
             if (await sourceFile.exists()) {
               await sourceFile.copy(filePath);
@@ -184,7 +344,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
         }
       }
       
-      // Show result
       if (savedCount > 0) {
         _showSaveResult(true, 'Saved $savedCount images to Downloads');
       } else {
@@ -202,14 +361,13 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
   Future<String?> _getDownloadFolder() async {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final folderName = 'Memories_$timestamp';
+      final folderName = 'Memories_2025_$timestamp';
       
       if (Platform.isAndroid) {
         final extDir = await getExternalStorageDirectory();
         if (extDir != null) {
           final basePath = extDir.parent.parent.parent.parent.path;
           
-          // Try Download folder first
           final downloadPath = '$basePath/Download/$folderName';
           try {
             final dir = Directory(downloadPath);
@@ -219,7 +377,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
             if (kDebugMode) debugPrint('Download folder failed: $e');
           }
           
-          // Try Pictures folder
           final picturesPath = '$basePath/Pictures/$folderName';
           try {
             final dir = Directory(picturesPath);
@@ -229,7 +386,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
             if (kDebugMode) debugPrint('Pictures folder failed: $e');
           }
           
-          // Try DCIM folder
           final dcimPath = '$basePath/DCIM/$folderName';
           try {
             final dir = Directory(dcimPath);
@@ -239,7 +395,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
             if (kDebugMode) debugPrint('DCIM folder failed: $e');
           }
           
-          // Use app external storage
           final appPath = '${extDir.path}/$folderName';
           final dir = Directory(appPath);
           await dir.create(recursive: true);
@@ -247,7 +402,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
         }
       }
       
-      // Fallback to app documents
       final appDir = await getApplicationDocumentsDirectory();
       final fallbackPath = '${appDir.path}/$folderName';
       final dir = Directory(fallbackPath);
@@ -291,9 +445,9 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
   Future<void> _shareVideo() async {
     try {
       await Share.share(
-        'Check out my 2025 memories!\n'
+        '2025 ki yaadein!\n'
         '${widget.video.photoCount} photos\n'
-        'Created with Reflect & Plan app',
+        'Reflect & Plan app se banaya',
         subject: 'My 2025 Memories',
       );
     } catch (e) {
@@ -307,16 +461,29 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
 
   @override
   Widget build(BuildContext context) {
-    context.watch<AppProvider>(); // Watch for theme changes
+    context.watch<AppProvider>();
+    final hasLetterbox = _currentEffectConfig['letterbox'] as bool;
     
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Video Preview
-          _buildVideoPreview(),
+          // Professional Video Preview with Effects
+          _buildProfessionalVideoPreview(),
           
-          // Gradient
+          // Letterbox Effect (for cinematic/epic styles)
+          if (hasLetterbox) _buildLetterboxEffect(),
+          
+          // Floating Particles Overlay
+          _buildParticleOverlay(),
+          
+          // Vignette Effect
+          _buildVignetteOverlay(),
+          
+          // Style-specific Color Overlay
+          _buildColorOverlay(),
+          
+          // Gradient Overlay
           _buildGradientOverlay(),
           
           // Saving overlay
@@ -337,26 +504,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
     );
   }
 
-  Widget _buildSavingOverlay() {
-    return Container(
-      color: Colors.black87,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(color: Colors.white),
-            const SizedBox(height: 20),
-            Text(
-              _saveMessage,
-              style: const TextStyle(color: Colors.white, fontSize: 18),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVideoPreview() {
+  Widget _buildProfessionalVideoPreview() {
     if (_imagePaths.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: Colors.white),
@@ -364,16 +512,150 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
     }
 
     return AnimatedBuilder(
-      animation: _scaleAnimation,
+      animation: Listenable.merge([_scaleAnimation, _fadeAnimation, _kenBurnsAnimation]),
       builder: (context, child) {
         return Transform.scale(
           scale: _scaleAnimation.value,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 800),
-            child: _buildImage(_imagePaths[_currentImageIndex]),
+          child: Transform.translate(
+            offset: Offset(_kenBurnsAnimation.value * 50, _kenBurnsAnimation.value * 30),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 1000),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.05, 0),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                );
+              },
+              child: _buildImage(_imagePaths[_currentImageIndex]),
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildLetterboxEffect() {
+    return Column(
+      children: [
+        Container(
+          height: MediaQuery.of(context).size.height * 0.08,
+          color: Colors.black,
+        ),
+        const Spacer(),
+        Container(
+          height: MediaQuery.of(context).size.height * 0.08,
+          color: Colors.black,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildParticleOverlay() {
+    return AnimatedBuilder(
+      animation: _particleAnimation,
+      builder: (context, child) {
+        return CustomPaint(
+          size: Size.infinite,
+          painter: _ParticlePainter(
+            particles: _particles,
+            progress: _particleAnimation.value,
+            color: _currentEffectConfig['particleColor'] as Color,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildVignetteOverlay() {
+    final intensity = _currentEffectConfig['vignetteIntensity'] as double;
+    
+    return IgnorePointer(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.2,
+            colors: [
+              Colors.transparent,
+              Colors.black.withValues(alpha: intensity * 0.3),
+              Colors.black.withValues(alpha: intensity * 0.6),
+              Colors.black.withValues(alpha: intensity),
+            ],
+            stops: const [0.0, 0.5, 0.75, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorOverlay() {
+    final overlayColor = _currentEffectConfig['overlayColor'] as Color;
+    
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _glowAnimation,
+        builder: (context, child) {
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  overlayColor.withValues(alpha: _glowAnimation.value * 0.2),
+                  Colors.transparent,
+                  (_currentEffectConfig['glowColor'] as Color).withValues(alpha: _glowAnimation.value * 0.15),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSavingOverlay() {
+    return Container(
+      color: Colors.black87,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    (_currentEffectConfig['glowColor'] as Color).withValues(alpha: 0.8),
+                    (_currentEffectConfig['glowColor'] as Color).withValues(alpha: 0.6),
+                  ],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              _saveMessage,
+              style: const TextStyle(
+                color: Colors.white, 
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Aapki yaadein save ho rahi hain...',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -433,7 +715,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
               Colors.transparent,
               Colors.black.withValues(alpha: 0.8),
             ],
-            stops: const [0.0, 0.2, 0.7, 1.0],
+            stops: const [0.0, 0.15, 0.7, 1.0],
           ),
         ),
       ),
@@ -441,6 +723,8 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
   }
 
   Widget _buildTopBar(BuildContext context) {
+    final glowColor = _currentEffectConfig['glowColor'] as Color;
+    
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -453,6 +737,40 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
             },
           ),
           const Spacer(),
+          // Style Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [glowColor, glowColor.withValues(alpha: 0.7)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: glowColor.withValues(alpha: 0.5),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.auto_awesome, color: Colors.white, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  widget.video.style.toString().split('.').last.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white, 
+                    fontSize: 11, 
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -461,7 +779,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
             ),
             child: Text(
               '${widget.video.photoCount} photos • ${widget.video.durationSeconds}s',
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: const TextStyle(color: Colors.white, fontSize: 12),
             ),
           ),
         ],
@@ -470,58 +788,112 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
   }
 
   Widget _buildBottomControls() {
+    final glowColor = _currentEffectConfig['glowColor'] as Color;
+    
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          // Progress dots
+          // Progress dots with glow
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(_imagePaths.length, (index) {
-              return Container(
-                width: 8,
+              final isActive = index == _currentImageIndex;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: isActive ? 24 : 8,
                 height: 8,
                 margin: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: index == _currentImageIndex 
-                      ? Colors.white 
-                      : Colors.white30,
+                  borderRadius: BorderRadius.circular(4),
+                  color: isActive ? glowColor : Colors.white30,
+                  boxShadow: isActive ? [
+                    BoxShadow(
+                      color: glowColor.withValues(alpha: 0.6),
+                      blurRadius: 8,
+                    ),
+                  ] : null,
                 ),
               );
             }),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          
+          // Image counter
+          Text(
+            '${_currentImageIndex + 1} / ${_imagePaths.length}',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 16),
           
           // Music info
           if (widget.video.backgroundMusic != null)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.white10,
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: glowColor.withValues(alpha: 0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.music_note, color: Colors.white, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.video.backgroundMusic!.name,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: glowColor.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _isPlaying ? Icons.music_note : Icons.music_off,
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.video.backgroundMusic!.name,
+                        style: const TextStyle(
+                          color: Colors.white, 
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        widget.video.backgroundMusic!.artist,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6), 
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                   if (_isPlaying) ...[
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(8),
+                        gradient: LinearGradient(colors: [glowColor, glowColor.withValues(alpha: 0.7)]),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text(
-                        'PLAYING',
-                        style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.graphic_eq, color: Colors.white, size: 12),
+                          SizedBox(width: 4),
+                          Text(
+                            'PLAYING',
+                            style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -532,21 +904,23 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
           // Saved indicator
           if (_isSaved)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [Colors.green.withValues(alpha: 0.2), Colors.green.withValues(alpha: 0.1)],
+                ),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.green),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(Icons.check_circle, color: Colors.green, size: 18),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Text(
                     _saveMessage,
-                    style: const TextStyle(color: Colors.green, fontSize: 12),
+                    style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -561,41 +935,50 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
                 icon: Icons.share,
                 label: 'Share',
                 onTap: _shareVideo,
+                color: glowColor,
               ),
               
-              // Play/Pause
+              // Play/Pause - Main Button
               GestureDetector(
                 onTap: _togglePlayPause,
-                child: Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF8E2DE2).withValues(alpha: 0.4),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
+                child: AnimatedBuilder(
+                  animation: _glowAnimation,
+                  builder: (context, child) {
+                    return Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [glowColor, glowColor.withValues(alpha: 0.7)],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: glowColor.withValues(alpha: _glowAnimation.value * 0.8),
+                            blurRadius: 25,
+                            spreadRadius: 5,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Icon(
-                    _isPlaying ? Icons.pause : Icons.play_arrow,
-                    color: Colors.white,
-                    size: 35,
-                  ),
+                      child: Icon(
+                        _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 42,
+                      ),
+                    );
+                  },
                 ),
               ),
               
-              // SAVE - Direct save button
+              // Save
               _buildButton(
-                icon: _isSaved ? Icons.check : Icons.download,
+                icon: _isSaved ? Icons.check_rounded : Icons.download_rounded,
                 label: _isSaved ? 'Saved!' : 'Save',
                 onTap: _isSaving ? null : _saveDirectly,
                 isSuccess: _isSaved,
+                color: glowColor,
               ),
             ],
           ),
@@ -609,23 +992,36 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
     required String label,
     VoidCallback? onTap,
     bool isSuccess = false,
+    required Color color,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              color: isSuccess ? Colors.green.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.15),
+              gradient: isSuccess 
+                  ? const LinearGradient(colors: [Colors.green, Color(0xFF00C853)])
+                  : null,
+              color: isSuccess ? null : Colors.white.withValues(alpha: 0.12),
               shape: BoxShape.circle,
-              border: isSuccess ? Border.all(color: Colors.green, width: 2) : null,
+              border: Border.all(
+                color: isSuccess ? Colors.green : color.withValues(alpha: 0.4),
+                width: 2,
+              ),
+              boxShadow: isSuccess ? [
+                BoxShadow(
+                  color: Colors.green.withValues(alpha: 0.4),
+                  blurRadius: 12,
+                ),
+              ] : null,
             ),
             child: Icon(
               icon,
-              color: isSuccess ? Colors.green : Colors.white,
-              size: 22,
+              color: isSuccess ? Colors.white : color,
+              size: 26,
             ),
           ),
           const SizedBox(height: 8),
@@ -634,11 +1030,65 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
             style: TextStyle(
               color: isSuccess ? Colors.green : Colors.white,
               fontSize: 12,
-              fontWeight: isSuccess ? FontWeight.bold : FontWeight.normal,
+              fontWeight: isSuccess ? FontWeight.bold : FontWeight.w500,
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+// Particle Data class for floating particles
+class _ParticleData {
+  double x;
+  double y;
+  final double size;
+  final double speed;
+  final double opacity;
+
+  _ParticleData({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.speed,
+    required this.opacity,
+  });
+}
+
+// Custom painter for particle effects
+class _ParticlePainter extends CustomPainter {
+  final List<_ParticleData> particles;
+  final double progress;
+  final Color color;
+
+  _ParticlePainter({
+    required this.particles,
+    required this.progress,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var particle in particles) {
+      // Update particle position (floating upward)
+      final y = (particle.y + progress * particle.speed) % 1.0;
+      final x = particle.x + math.sin(progress * math.pi * 2 + particle.x * 10) * 0.02;
+      
+      final paint = Paint()
+        ..color = color.withValues(alpha: particle.opacity * (1 - y * 0.5))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+      
+      canvas.drawCircle(
+        Offset(x * size.width, (1 - y) * size.height),
+        particle.size,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ParticlePainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }

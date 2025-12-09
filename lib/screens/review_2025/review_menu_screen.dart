@@ -8,6 +8,7 @@ import 'achievements_screen.dart';
 import 'statistics_screen.dart';
 import 'wrapped_screen.dart';
 import 'video_memories_screen.dart';
+import 'quotations_screen.dart';
 
 class ReviewMenuScreen extends StatelessWidget {
   const ReviewMenuScreen({super.key});
@@ -125,6 +126,15 @@ class ReviewMenuScreen extends StatelessWidget {
                       subtitle: 'Select photos/videos to create slideshow',
                       gradientColors: const [Color(0xFF24243E), Color(0xFF302B63)],
                       onTap: () => _navigateTo(context, const VideoMemoriesScreen()),
+                    ),
+                    
+                    // 9. Quotations - Warm gradient
+                    _ReviewCard(
+                      emoji: '💬',
+                      title: 'Quotations',
+                      subtitle: 'Maafi, Shukr, Khushi - Share karein',
+                      gradientColors: const [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+                      onTap: () => _navigateTo(context, const QuotationsScreen()),
                     ),
                   ],
                 ),
