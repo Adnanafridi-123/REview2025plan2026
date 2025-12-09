@@ -11,86 +11,123 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GradientBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Top Header Row with Settings Button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Consumer<AppProvider>(
+      builder: (context, provider, _) {
+        return GradientBackground(
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: SafeArea(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Top Header Row with Dark/Light Mode & Settings Button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Your 2025',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppTheme.textWhite.withValues(alpha: 0.7),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              // Dark/Light Mode Toggle Button
+                              GestureDetector(
+                                onTap: () => provider.toggleDarkMode(),
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    provider.isDarkMode 
+                                        ? Icons.light_mode 
+                                        : Icons.dark_mode,
+                                    color: provider.isDarkMode 
+                                        ? const Color(0xFFFFD700) 
+                                        : AppTheme.textWhite.withValues(alpha: 0.8),
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              // Settings Button
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.settings,
+                                    color: AppTheme.textWhite.withValues(alpha: 0.8),
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      // Main Title - App Name
+                      const Text(
+                        'Review 2025',
+                        style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textYellow,
+                        ),
+                      ),
+                      const Text(
+                        '& Plan 2026',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textWhite,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Subtitle
                       Text(
-                        'Your 2025',
+                        'Reflect on your memories & plan your future',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppTheme.textWhite.withValues(alpha: 0.7),
+                          color: AppTheme.textWhite.withValues(alpha: 0.8),
                         ),
                       ),
-                      // Settings Button
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            Icons.settings,
-                            color: AppTheme.textWhite.withValues(alpha: 0.8),
-                            size: 22,
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Review 2025 Card - Large rectangular card
+                      _buildReview2025Card(context),
+                      const SizedBox(height: 16),
+                      
+                      // Plan 2026 Card - Large rectangular card
+                      _buildPlan2026Card(context),
+                      const SizedBox(height: 24),
+                      
+                      // Quick Stats Section
+                      _buildQuickStatsSection(context),
+                      const SizedBox(height: 20),
                     ],
                   ),
-                  // Main Title - "Journey"
-                  const Text(
-                    'Journey',
-                    style: TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textYellow,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Subtitle
-                  Text(
-                    'Reflect on your memories & plan your future',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.textWhite.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Review 2025 Card - Large rectangular card
-                  _buildReview2025Card(context),
-                  const SizedBox(height: 16),
-                  
-                  // Plan 2026 Card - Large rectangular card
-                  _buildPlan2026Card(context),
-                  const SizedBox(height: 24),
-                  
-                  // Quick Stats Section
-                  _buildQuickStatsSection(context),
-                  const SizedBox(height: 20),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

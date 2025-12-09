@@ -313,6 +313,36 @@ class AppTheme {
       ),
     );
   }
+  
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      primaryColor: const Color(0xFF1A1A2E),
+      scaffoldBackgroundColor: Colors.transparent,
+      fontFamily: 'Poppins',
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF1A1A2E),
+        brightness: Brightness.dark,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        titleTextStyle: TextStyle(
+          color: textWhite,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: IconThemeData(color: textWhite),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardBorderRadius),
+        ),
+      ),
+    );
+  }
 }
 
 // ==========================================
