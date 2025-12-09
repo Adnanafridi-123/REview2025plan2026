@@ -55,14 +55,98 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
 
-  // Video Styles
+  // Premium Video Styles with descriptions and effects
   final List<Map<String, dynamic>> _videoStyles = [
-    {'name': 'Cinematic', 'icon': Icons.movie_filter, 'color': const Color(0xFF8E2DE2)},
-    {'name': 'Slideshow', 'icon': Icons.photo_library, 'color': const Color(0xFF00C9FF)},
-    {'name': 'Dynamic', 'icon': Icons.speed, 'color': const Color(0xFFFF5E62)},
-    {'name': 'Highlights', 'icon': Icons.star, 'color': const Color(0xFFFFD200)},
-    {'name': 'Memories', 'icon': Icons.favorite, 'color': const Color(0xFFFF6B8A)},
-    {'name': 'Modern', 'icon': Icons.auto_awesome, 'color': const Color(0xFF4ECDC4)},
+    {
+      'name': 'Cinematic',
+      'icon': Icons.movie_filter,
+      'color': const Color(0xFF8E2DE2),
+      'gradient': [const Color(0xFF8E2DE2), const Color(0xFF4A00E0)],
+      'description': 'Hollywood-style transitions',
+      'emoji': '🎬',
+      'effects': ['Ken Burns', 'Fade', 'Zoom'],
+    },
+    {
+      'name': 'Epic',
+      'icon': Icons.auto_awesome_motion,
+      'color': const Color(0xFFFF6B6B),
+      'gradient': [const Color(0xFFFF6B6B), const Color(0xFFFF8E53)],
+      'description': 'Dramatic & powerful',
+      'emoji': '🔥',
+      'effects': ['Zoom Burst', 'Flash', 'Shake'],
+    },
+    {
+      'name': 'Romantic',
+      'icon': Icons.favorite,
+      'color': const Color(0xFFFF6B8A),
+      'gradient': [const Color(0xFFFF6B8A), const Color(0xFFFF8E8E)],
+      'description': 'Soft & dreamy vibes',
+      'emoji': '💕',
+      'effects': ['Soft Blur', 'Hearts', 'Glow'],
+    },
+    {
+      'name': 'Vintage',
+      'icon': Icons.camera_alt,
+      'color': const Color(0xFFD4A574),
+      'gradient': [const Color(0xFFD4A574), const Color(0xFFB8860B)],
+      'description': 'Classic retro look',
+      'emoji': '📷',
+      'effects': ['Sepia', 'Film Grain', 'Vignette'],
+    },
+    {
+      'name': 'Neon',
+      'icon': Icons.bolt,
+      'color': const Color(0xFF00F5FF),
+      'gradient': [const Color(0xFF00F5FF), const Color(0xFFFF00FF)],
+      'description': 'Vibrant neon glow',
+      'emoji': '⚡',
+      'effects': ['Glow', 'Color Shift', 'Strobe'],
+    },
+    {
+      'name': 'Minimal',
+      'icon': Icons.crop_square,
+      'color': const Color(0xFF4ECDC4),
+      'gradient': [const Color(0xFF4ECDC4), const Color(0xFF44A08D)],
+      'description': 'Clean & elegant',
+      'emoji': '✨',
+      'effects': ['Fade', 'Slide', 'Clean Cut'],
+    },
+    {
+      'name': 'Party',
+      'icon': Icons.celebration,
+      'color': const Color(0xFFFFD700),
+      'gradient': [const Color(0xFFFFD700), const Color(0xFFFF8C00)],
+      'description': 'Fun & energetic',
+      'emoji': '🎉',
+      'effects': ['Confetti', 'Bounce', 'Flash'],
+    },
+    {
+      'name': 'Nature',
+      'icon': Icons.eco,
+      'color': const Color(0xFF2ECC71),
+      'gradient': [const Color(0xFF2ECC71), const Color(0xFF27AE60)],
+      'description': 'Calm & peaceful',
+      'emoji': '🌿',
+      'effects': ['Leaf Fall', 'Sunbeam', 'Flow'],
+    },
+    {
+      'name': 'Travel',
+      'icon': Icons.flight,
+      'color': const Color(0xFF3498DB),
+      'gradient': [const Color(0xFF3498DB), const Color(0xFF2980B9)],
+      'description': 'Adventure awaits',
+      'emoji': '✈️',
+      'effects': ['Map Pin', 'Compass', 'Journey'],
+    },
+    {
+      'name': 'Story',
+      'icon': Icons.auto_stories,
+      'color': const Color(0xFF9B59B6),
+      'gradient': [const Color(0xFF9B59B6), const Color(0xFF8E44AD)],
+      'description': 'Tell your story',
+      'emoji': '📖',
+      'effects': ['Page Turn', 'Typewriter', 'Narrative'],
+    },
   ];
 
   @override
@@ -439,43 +523,135 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
   }
 
   Widget _buildPreviewArea(bool isDarkMode, int mediaCount) {
+    final currentStyle = _videoStyles.firstWhere((s) => s['name'] == _selectedStyle);
+    final gradientColors = currentStyle['gradient'] as List<Color>;
+    
     return ScaleTransition(
       scale: _scaleAnimation,
       child: Container(
-        height: 160,
+        height: 180,
         width: double.infinity,
         decoration: BoxDecoration(
-          gradient: isDarkMode 
-              ? const LinearGradient(colors: [Color(0xFF1A1A2E), Color(0xFF302B63)])
-              : AppTheme.videoMemoriesGradient,
-          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              gradientColors[0].withValues(alpha: 0.9),
+              gradientColors[1].withValues(alpha: 0.8),
+              const Color(0xFF1A1A2E),
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
-            BoxShadow(color: const Color(0xFF24243E).withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10)),
+            BoxShadow(
+              color: gradientColors[0].withValues(alpha: 0.4),
+              blurRadius: 25,
+              offset: const Offset(0, 12),
+            ),
+          ],
+          border: Border.all(
+            color: gradientColors[0].withValues(alpha: 0.3),
+            width: 2,
+          ),
+        ),
+        child: Stack(
+          children: [
+            // Background pattern
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: CustomPaint(
+                  painter: _PatternPainter(color: Colors.white.withValues(alpha: 0.05)),
+                ),
+              ),
+            ),
+            // Content
+            _isGenerating
+                ? _buildGeneratingState()
+                : _isGenerated
+                    ? _buildGeneratedState()
+                    : _buildReadyState(mediaCount),
           ],
         ),
-        child: _isGenerating
-            ? _buildGeneratingState()
-            : _isGenerated
-                ? _buildGeneratedState()
-                : _buildReadyState(mediaCount),
       ),
     );
   }
 
   Widget _buildReadyState(int mediaCount) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 60, height: 60,
-          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-          child: const Icon(Icons.movie_creation, color: Colors.white, size: 30),
-        ),
-        const SizedBox(height: 12),
-        const Text('Ready to Create', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-        const SizedBox(height: 4),
-        Text('$mediaCount photos/videos selected', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.7))),
-      ],
+    final currentStyle = _videoStyles.firstWhere((s) => s['name'] == _selectedStyle);
+    
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          // Left side - Style Preview
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(currentStyle['emoji'] as String, style: const TextStyle(fontSize: 32)),
+                const SizedBox(height: 4),
+                Text(
+                  currentStyle['name'] as String,
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Right side - Info
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: Colors.amber, size: 20),
+                    SizedBox(width: 6),
+                    Text(
+                      'Ready to Create!',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '📸 $mediaCount items selected',
+                    style: const TextStyle(fontSize: 12, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${currentStyle['description']} • $_selectedDuration',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -554,33 +730,165 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Video Style', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: isDarkMode ? Colors.white : AppTheme.textWhite)),
-        const SizedBox(height: 12),
+        Row(
+          children: [
+            const Icon(Icons.style, color: Colors.white, size: 22),
+            const SizedBox(width: 8),
+            Text('Video Style', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : AppTheme.textWhite)),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: (_videoStyles.firstWhere((s) => s['name'] == _selectedStyle)['gradient'] as List<Color>),
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _selectedStyle,
+                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Premium Style Grid
         SizedBox(
-          height: 90,
+          height: 160,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             itemCount: _videoStyles.length,
             itemBuilder: (context, index) {
               final style = _videoStyles[index];
               final isSelected = _selectedStyle == style['name'];
+              final gradientColors = style['gradient'] as List<Color>;
+              
               return GestureDetector(
                 onTap: () => setState(() => _selectedStyle = style['name']),
-                child: Container(
-                  width: 80,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: 120,
                   margin: EdgeInsets.only(right: index < _videoStyles.length - 1 ? 12 : 0),
                   decoration: BoxDecoration(
-                    gradient: isSelected ? LinearGradient(colors: [style['color'], style['color'].withValues(alpha: 0.7)]) : null,
-                    color: isSelected ? null : Colors.white.withValues(alpha: isDarkMode ? 0.1 : 0.15),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: isSelected ? style['color'] : Colors.white.withValues(alpha: 0.2), width: isSelected ? 2 : 1),
+                    gradient: isSelected 
+                        ? LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: gradientColors,
+                          )
+                        : LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withValues(alpha: isDarkMode ? 0.1 : 0.15),
+                              Colors.white.withValues(alpha: isDarkMode ? 0.05 : 0.1),
+                            ],
+                          ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected ? gradientColors[0] : Colors.white.withValues(alpha: 0.2),
+                      width: isSelected ? 3 : 1,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: gradientColors[0].withValues(alpha: 0.5),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8),
+                            ),
+                          ]
+                        : null,
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Stack(
                     children: [
-                      Icon(style['icon'], color: isSelected ? Colors.white : style['color'], size: 28),
-                      const SizedBox(height: 8),
-                      Text(style['name'], style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: isSelected ? Colors.white : (isDarkMode ? Colors.white : AppTheme.textWhite))),
+                      // Glow effect for selected
+                      if (isSelected)
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              gradient: RadialGradient(
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.3),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      // Content
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Emoji
+                            Text(
+                              style['emoji'] as String,
+                              style: const TextStyle(fontSize: 28),
+                            ),
+                            const SizedBox(height: 8),
+                            // Icon with background
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: isSelected 
+                                    ? Colors.white.withValues(alpha: 0.25)
+                                    : gradientColors[0].withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                style['icon'] as IconData,
+                                color: isSelected ? Colors.white : gradientColors[0],
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // Name
+                            Text(
+                              style['name'] as String,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? Colors.white : (isDarkMode ? Colors.white : AppTheme.textWhite),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            // Description
+                            Text(
+                              style['description'] as String,
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: isSelected 
+                                    ? Colors.white.withValues(alpha: 0.8)
+                                    : (isDarkMode ? Colors.white60 : AppTheme.textWhite.withValues(alpha: 0.6)),
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Selected checkmark
+                      if (isSelected)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.check,
+                              color: gradientColors[0],
+                              size: 12,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -588,7 +896,88 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
             },
           ),
         ),
+        const SizedBox(height: 12),
+        // Style Effects Preview
+        _buildStyleEffectsPreview(isDarkMode),
       ],
+    );
+  }
+  
+  Widget _buildStyleEffectsPreview(bool isDarkMode) {
+    final currentStyle = _videoStyles.firstWhere((s) => s['name'] == _selectedStyle);
+    final effects = currentStyle['effects'] as List<String>;
+    final gradientColors = currentStyle['gradient'] as List<Color>;
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            gradientColors[0].withValues(alpha: 0.2),
+            gradientColors[1].withValues(alpha: 0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: gradientColors[0].withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                currentStyle['emoji'] as String,
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${currentStyle['name']} Effects',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white : AppTheme.textWhite,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: effects.map((effect) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: gradientColors),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: gradientColors[0].withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.auto_fix_high, color: Colors.white, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      effect,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -705,28 +1094,88 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
   }
 
   Widget _buildDurationSection(bool isDarkMode) {
-    final durations = ['15s', '30s', '60s', '90s'];
+    final durations = [
+      {'time': '15s', 'label': 'Quick', 'icon': Icons.bolt, 'color': const Color(0xFF00D9FF)},
+      {'time': '30s', 'label': 'Standard', 'icon': Icons.timer, 'color': const Color(0xFF667EEA)},
+      {'time': '60s', 'label': 'Extended', 'icon': Icons.hourglass_bottom, 'color': const Color(0xFFFF6B6B)},
+      {'time': '90s', 'label': 'Full', 'icon': Icons.movie, 'color': const Color(0xFFFFD700)},
+    ];
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Video Duration', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: isDarkMode ? Colors.white : AppTheme.textWhite)),
-        const SizedBox(height: 12),
+        Row(
+          children: [
+            const Icon(Icons.access_time, color: Colors.white, size: 22),
+            const SizedBox(width: 8),
+            Text('Video Duration', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : AppTheme.textWhite)),
+          ],
+        ),
+        const SizedBox(height: 16),
         Row(
           children: durations.map((duration) {
-            final isSelected = _selectedDuration == duration;
+            final isSelected = _selectedDuration == duration['time'];
+            final color = duration['color'] as Color;
             return Expanded(
               child: GestureDetector(
-                onTap: () => setState(() => _selectedDuration = duration),
-                child: Container(
+                onTap: () => setState(() => _selectedDuration = duration['time'] as String),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
                   margin: EdgeInsets.only(right: duration != durations.last ? 8 : 0),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    gradient: isSelected ? const LinearGradient(colors: [Color(0xFF667EEA), Color(0xFF764BA2)]) : null,
+                    gradient: isSelected 
+                        ? LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [color, color.withValues(alpha: 0.7)],
+                          )
+                        : null,
                     color: isSelected ? null : Colors.white.withValues(alpha: isDarkMode ? 0.1 : 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: isSelected ? Colors.transparent : Colors.white.withValues(alpha: 0.2)),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isSelected ? color : Colors.white.withValues(alpha: 0.2),
+                      width: isSelected ? 2 : 1,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.4),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : null,
                   ),
-                  child: Text(duration, textAlign: TextAlign.center, style: TextStyle(color: isSelected ? Colors.white : (isDarkMode ? Colors.white : AppTheme.textWhite), fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 15)),
+                  child: Column(
+                    children: [
+                      Icon(
+                        duration['icon'] as IconData,
+                        color: isSelected ? Colors.white : color,
+                        size: 22,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        duration['time'] as String,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : (isDarkMode ? Colors.white : AppTheme.textWhite),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        duration['label'] as String,
+                        style: TextStyle(
+                          color: isSelected 
+                              ? Colors.white.withValues(alpha: 0.8)
+                              : (isDarkMode ? Colors.white60 : AppTheme.textWhite.withValues(alpha: 0.6)),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -738,33 +1187,152 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
 
   Widget _buildGenerateButton(int mediaCount, bool isDarkMode) {
     final canGenerate = mediaCount > 0 && !_isGenerating;
-    return GestureDetector(
-      onTap: canGenerate ? _generateVideo : null,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          gradient: canGenerate 
-              ? (isDarkMode ? const LinearGradient(colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)]) : AppTheme.videoMemoriesGradient)
-              : LinearGradient(colors: [Colors.grey[600]!, Colors.grey[700]!]),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: canGenerate ? [BoxShadow(color: const Color(0xFF24243E).withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 6))] : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (_isGenerating)
-              const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            else
-              Icon(_isGenerated ? Icons.refresh : Icons.movie_creation, color: Colors.white, size: 22),
-            const SizedBox(width: 12),
-            Text(
-              _isGenerating ? 'Creating Video...' : _isGenerated ? 'Create New Video' : mediaCount > 0 ? 'Generate Video ($mediaCount items)' : 'Select Photos First',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+    final currentStyle = _videoStyles.firstWhere((s) => s['name'] == _selectedStyle);
+    final gradientColors = currentStyle['gradient'] as List<Color>;
+    
+    return Column(
+      children: [
+        // Summary Card
+        if (mediaCount > 0 && !_isGenerating)
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: isDarkMode ? 0.1 : 0.15),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
-          ],
+            child: Row(
+              children: [
+                // Style Preview
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: gradientColors),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(currentStyle['emoji'] as String, style: const TextStyle(fontSize: 24)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ready to Create!',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : AppTheme.textWhite,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$mediaCount photos • $_selectedStyle • $_selectedDuration',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: (isDarkMode ? Colors.white : AppTheme.textWhite).withValues(alpha: 0.7),
+                        ),
+                      ),
+                      if (_selectedMusicTrack != null)
+                        Text(
+                          '🎵 ${_selectedMusicTrack!.name}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.iconGreen.withValues(alpha: 0.9),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        
+        // Generate Button
+        GestureDetector(
+          onTap: canGenerate ? _generateVideo : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            decoration: BoxDecoration(
+              gradient: canGenerate 
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: gradientColors,
+                    )
+                  : LinearGradient(colors: [Colors.grey[600]!, Colors.grey[700]!]),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: canGenerate 
+                  ? [
+                      BoxShadow(
+                        color: gradientColors[0].withValues(alpha: 0.5),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (_isGenerating) ...[
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                  ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _isGenerated ? Icons.refresh : Icons.movie_creation,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _isGenerating 
+                          ? 'Creating Your Video...' 
+                          : _isGenerated 
+                              ? 'Create Another Video' 
+                              : mediaCount > 0 
+                                  ? '🎬 Generate Video' 
+                                  : 'Select Photos First',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    if (!_isGenerating && mediaCount > 0)
+                      Text(
+                        '$mediaCount items • $_selectedStyle style',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -841,4 +1409,32 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
       Navigator.push(context, MaterialPageRoute(builder: (context) => VideoPreviewScreen(video: _generatedVideo!)));
     }
   }
+}
+
+// Custom painter for background pattern
+class _PatternPainter extends CustomPainter {
+  final Color color;
+  
+  _PatternPainter({required this.color});
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+    
+    const spacing = 30.0;
+    
+    // Draw diagonal lines
+    for (double i = -size.height; i < size.width + size.height; i += spacing) {
+      canvas.drawLine(
+        Offset(i, 0),
+        Offset(i + size.height, size.height),
+        paint,
+      );
+    }
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

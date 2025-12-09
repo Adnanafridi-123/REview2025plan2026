@@ -9,9 +9,19 @@ import '../services/media_service.dart';
 import '../services/music_service.dart';
 
 
-/// Video style effects
+/// Video style effects - Premium Styles
 enum VideoStyle {
-  cinematic,
+  cinematic,   // Hollywood-style transitions
+  epic,        // Dramatic & powerful
+  romantic,    // Soft & dreamy
+  vintage,     // Classic retro look
+  neon,        // Vibrant neon glow
+  minimal,     // Clean & elegant
+  party,       // Fun & energetic
+  nature,      // Calm & peaceful
+  travel,      // Adventure style
+  story,       // Narrative style
+  // Legacy styles (for backwards compatibility)
   slideshow,
   dynamic,
   highlights,
@@ -462,6 +472,24 @@ class VideoGeneratorService {
     switch (style) {
       case VideoStyle.cinematic:
         return 'Cinematic';
+      case VideoStyle.epic:
+        return 'Epic';
+      case VideoStyle.romantic:
+        return 'Romantic';
+      case VideoStyle.vintage:
+        return 'Vintage';
+      case VideoStyle.neon:
+        return 'Neon';
+      case VideoStyle.minimal:
+        return 'Minimal';
+      case VideoStyle.party:
+        return 'Party';
+      case VideoStyle.nature:
+        return 'Nature';
+      case VideoStyle.travel:
+        return 'Travel';
+      case VideoStyle.story:
+        return 'Story';
       case VideoStyle.slideshow:
         return 'Slideshow';
       case VideoStyle.dynamic:
@@ -480,6 +508,24 @@ class VideoGeneratorService {
     switch (name.toLowerCase()) {
       case 'cinematic':
         return VideoStyle.cinematic;
+      case 'epic':
+        return VideoStyle.epic;
+      case 'romantic':
+        return VideoStyle.romantic;
+      case 'vintage':
+        return VideoStyle.vintage;
+      case 'neon':
+        return VideoStyle.neon;
+      case 'minimal':
+        return VideoStyle.minimal;
+      case 'party':
+        return VideoStyle.party;
+      case 'nature':
+        return VideoStyle.nature;
+      case 'travel':
+        return VideoStyle.travel;
+      case 'story':
+        return VideoStyle.story;
       case 'slideshow':
         return VideoStyle.slideshow;
       case 'dynamic':
@@ -491,7 +537,35 @@ class VideoGeneratorService {
       case 'modern':
         return VideoStyle.modern;
       default:
-        return VideoStyle.slideshow;
+        return VideoStyle.cinematic;
+    }
+  }
+  
+  /// Get style description
+  static String getStyleDescription(VideoStyle style) {
+    switch (style) {
+      case VideoStyle.cinematic:
+        return 'Hollywood-style with Ken Burns, Fade & Zoom effects';
+      case VideoStyle.epic:
+        return 'Dramatic with Zoom Burst, Flash & Shake effects';
+      case VideoStyle.romantic:
+        return 'Soft & dreamy with Blur, Hearts & Glow effects';
+      case VideoStyle.vintage:
+        return 'Classic retro with Sepia, Film Grain & Vignette';
+      case VideoStyle.neon:
+        return 'Vibrant with Glow, Color Shift & Strobe';
+      case VideoStyle.minimal:
+        return 'Clean & elegant with Fade, Slide & Clean Cut';
+      case VideoStyle.party:
+        return 'Fun & energetic with Confetti, Bounce & Flash';
+      case VideoStyle.nature:
+        return 'Calm & peaceful with Leaf Fall, Sunbeam & Flow';
+      case VideoStyle.travel:
+        return 'Adventure with Map Pin, Compass & Journey';
+      case VideoStyle.story:
+        return 'Narrative with Page Turn, Typewriter effects';
+      default:
+        return 'Standard video style';
     }
   }
 
