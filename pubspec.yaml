@@ -35,10 +35,12 @@ dependencies:
   
   # Audio Player for music preview
   audioplayers: 5.2.1
-  just_audio: 0.9.36
   
   # File handling
   permission_handler: 11.1.0
+  
+  # HTTP for downloading images
+  http: 0.13.6
   
   cupertino_icons: ^1.0.2
 

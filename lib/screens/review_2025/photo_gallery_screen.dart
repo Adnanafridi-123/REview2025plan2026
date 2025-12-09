@@ -14,7 +14,6 @@ class PhotoGalleryScreen extends StatefulWidget {
 }
 
 class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
-  String _selectedTab = 'Photos';
   int? _selectedMonth;
   bool _isLoading = false;
   List<MediaItem> _devicePhotos = [];
@@ -359,26 +358,6 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
       child: Row(
         children: [
           const LightBackButton(),
-          const SizedBox(width: 16),
-          // Tab Pills
-          _TabPill(
-            label: 'Photos',
-            isSelected: _selectedTab == 'Photos',
-            onTap: () => setState(() => _selectedTab = 'Photos'),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () => setState(() => _selectedTab = 'Albums'),
-            child: Text(
-              'Albums',
-              style: TextStyle(
-                fontSize: 15,
-                color: _selectedTab == 'Albums' ? const Color(0xFF8C52FF) : const Color(0xFF888888),
-                fontWeight: _selectedTab == 'Albums' ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ),
-          const Spacer(),
         ],
       ),
     );
@@ -632,40 +611,6 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TabPill extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _TabPill({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF8C52FF) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 15,
-            color: isSelected ? Colors.white : const Color(0xFF888888),
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
         ),
       ),
     );
