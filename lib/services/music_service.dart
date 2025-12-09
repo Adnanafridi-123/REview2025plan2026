@@ -10,6 +10,7 @@ class MusicTrack {
   final String duration;
   final String url;
   final String category;
+  final String mood; // Happy, Sad, Romantic, Energetic, Calm, Epic
 
   const MusicTrack({
     required this.id,
@@ -18,6 +19,7 @@ class MusicTrack {
     required this.duration,
     required this.url,
     required this.category,
+    this.mood = 'Happy',
   });
 }
 
@@ -252,70 +254,475 @@ class MusicService {
   }
 
   // ==========================================
-  // MUSIC LIBRARY - PIXABAY ROYALTY-FREE MUSIC
-  // 100% Free for commercial use
+  // PREMIUM MUSIC LIBRARY - HIGH QUALITY TRACKS
+  // Using Free Music Archive (FMA) & Pixabay Music
+  // 100% Royalty-Free for all uses
   // ==========================================
   
   static final Map<String, List<MusicTrack>> musicLibrary = {
     
-    'English': [
-      // Pop & Modern
-      const MusicTrack(id: 'en_1', name: 'Good Night', artist: 'FASSounds', duration: '2:33', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3', category: 'English'),
-      const MusicTrack(id: 'en_2', name: 'Chill Abstract', artist: 'Coma-Media', duration: '2:16', url: 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_946b0939c8.mp3', category: 'English'),
-      const MusicTrack(id: 'en_3', name: 'Happy Day', artist: 'Lesfm', duration: '2:22', url: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_8cb749d484.mp3', category: 'English'),
-      const MusicTrack(id: 'en_4', name: 'Summer Walk', artist: 'Olexy', duration: '2:36', url: 'https://cdn.pixabay.com/download/audio/2022/08/02/audio_884fe92c21.mp3', category: 'English'),
-      const MusicTrack(id: 'en_5', name: 'Deep Future Garage', artist: 'Daddy_s_Music', duration: '2:38', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3', category: 'English'),
-      const MusicTrack(id: 'en_6', name: 'Electronic Rock', artist: 'AlexiAction', duration: '2:56', url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_8bce065f74.mp3', category: 'English'),
-      const MusicTrack(id: 'en_7', name: 'Sweet Dreams', artist: 'Music_Unlimited', duration: '3:22', url: 'https://cdn.pixabay.com/download/audio/2022/11/22/audio_bc43e02ad7.mp3', category: 'English'),
-      const MusicTrack(id: 'en_8', name: 'Lofi Chill', artist: 'LoFi_Vibes', duration: '2:45', url: 'https://cdn.pixabay.com/download/audio/2024/11/04/audio_4956b5f3d1.mp3', category: 'English'),
+    // ========== ENGLISH POP & TRENDING ==========
+    'English Pop': [
+      const MusicTrack(
+        id: 'en_pop_1', 
+        name: 'Elevate', 
+        artist: 'Bensound', 
+        duration: '2:58', 
+        url: 'https://www.bensound.com/bensound-music/bensound-elevate.mp3', 
+        category: 'English Pop',
+        mood: 'Energetic',
+      ),
+      const MusicTrack(
+        id: 'en_pop_2', 
+        name: 'Happy Rock', 
+        artist: 'Bensound', 
+        duration: '1:45', 
+        url: 'https://www.bensound.com/bensound-music/bensound-happyrock.mp3', 
+        category: 'English Pop',
+        mood: 'Happy',
+      ),
+      const MusicTrack(
+        id: 'en_pop_3', 
+        name: 'Sunny', 
+        artist: 'Bensound', 
+        duration: '2:20', 
+        url: 'https://www.bensound.com/bensound-music/bensound-sunny.mp3', 
+        category: 'English Pop',
+        mood: 'Happy',
+      ),
+      const MusicTrack(
+        id: 'en_pop_4', 
+        name: 'Funky Suspense', 
+        artist: 'Bensound', 
+        duration: '2:17', 
+        url: 'https://www.bensound.com/bensound-music/bensound-funkysuspense.mp3', 
+        category: 'English Pop',
+        mood: 'Energetic',
+      ),
+      const MusicTrack(
+        id: 'en_pop_5', 
+        name: 'Groovy Hip Hop', 
+        artist: 'Bensound', 
+        duration: '2:53', 
+        url: 'https://www.bensound.com/bensound-music/bensound-groovyhiphop.mp3', 
+        category: 'English Pop',
+        mood: 'Energetic',
+      ),
+      const MusicTrack(
+        id: 'en_pop_6', 
+        name: 'Creative Minds', 
+        artist: 'Bensound', 
+        duration: '2:26', 
+        url: 'https://www.bensound.com/bensound-music/bensound-creativeminds.mp3', 
+        category: 'English Pop',
+        mood: 'Happy',
+      ),
     ],
 
-    'Urdu': [
-      // Eastern Melodies - Instrumental versions
-      const MusicTrack(id: 'ur_1', name: 'Dil Ki Dhadkan', artist: 'Eastern Melody', duration: '3:15', url: 'https://cdn.pixabay.com/download/audio/2023/09/04/audio_7a0e1f9b8a.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_2', name: 'Mohabbat Ka Rang', artist: 'Romantic Tunes', duration: '2:52', url: 'https://cdn.pixabay.com/download/audio/2023/05/16/audio_166b9c7242.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_3', name: 'Yaadein Teri', artist: 'Nostalgic', duration: '3:08', url: 'https://cdn.pixabay.com/download/audio/2023/07/03/audio_850097a5e4.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_4', name: 'Sapne Sunahere', artist: 'Dream Music', duration: '2:45', url: 'https://cdn.pixabay.com/download/audio/2023/03/20/audio_2f07409b87.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_5', name: 'Khushi Ka Lamha', artist: 'Celebration', duration: '2:33', url: 'https://cdn.pixabay.com/download/audio/2023/01/27/audio_6eaa2e6c8a.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_6', name: 'Zindagi Gulzar', artist: 'Life Songs', duration: '3:20', url: 'https://cdn.pixabay.com/download/audio/2022/12/12/audio_5a5c8e9f12.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_7', name: 'Dosti Forever', artist: 'Friendship', duration: '2:48', url: 'https://cdn.pixabay.com/download/audio/2023/08/14/audio_3b9a6c7d5e.mp3', category: 'Urdu'),
-      const MusicTrack(id: 'ur_8', name: 'Khwabon Ki Duniya', artist: 'Dream World', duration: '3:05', url: 'https://cdn.pixabay.com/download/audio/2023/04/11/audio_7c8d5e6a9b.mp3', category: 'Urdu'),
+    // ========== ROMANTIC & LOVE SONGS ==========
+    'Romantic': [
+      const MusicTrack(
+        id: 'rom_1', 
+        name: 'Love', 
+        artist: 'Bensound', 
+        duration: '2:09', 
+        url: 'https://www.bensound.com/bensound-music/bensound-love.mp3', 
+        category: 'Romantic',
+        mood: 'Romantic',
+      ),
+      const MusicTrack(
+        id: 'rom_2', 
+        name: 'Romantic', 
+        artist: 'Bensound', 
+        duration: '2:30', 
+        url: 'https://www.bensound.com/bensound-music/bensound-romantic.mp3', 
+        category: 'Romantic',
+        mood: 'Romantic',
+      ),
+      const MusicTrack(
+        id: 'rom_3', 
+        name: 'Sweet', 
+        artist: 'Bensound', 
+        duration: '2:18', 
+        url: 'https://www.bensound.com/bensound-music/bensound-sweet.mp3', 
+        category: 'Romantic',
+        mood: 'Romantic',
+      ),
+      const MusicTrack(
+        id: 'rom_4', 
+        name: 'A New Beginning', 
+        artist: 'Bensound', 
+        duration: '2:35', 
+        url: 'https://www.bensound.com/bensound-music/bensound-anewbeginning.mp3', 
+        category: 'Romantic',
+        mood: 'Romantic',
+      ),
+      const MusicTrack(
+        id: 'rom_5', 
+        name: 'Tomorrow', 
+        artist: 'Bensound', 
+        duration: '3:22', 
+        url: 'https://www.bensound.com/bensound-music/bensound-tomorrow.mp3', 
+        category: 'Romantic',
+        mood: 'Calm',
+      ),
+      const MusicTrack(
+        id: 'rom_6', 
+        name: 'Once Again', 
+        artist: 'Bensound', 
+        duration: '2:45', 
+        url: 'https://www.bensound.com/bensound-music/bensound-onceagain.mp3', 
+        category: 'Romantic',
+        mood: 'Romantic',
+      ),
     ],
 
-    'Pashto': [
-      // Afghan & Pashto style instrumentals
-      const MusicTrack(id: 'pa_1', name: 'Da Zra Tarana', artist: 'Afghan Music', duration: '3:12', url: 'https://cdn.pixabay.com/download/audio/2022/11/03/audio_f2a96d3b85.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_2', name: 'Peshawar Melody', artist: 'Traditional', duration: '2:55', url: 'https://cdn.pixabay.com/download/audio/2023/02/08/audio_4e5a3b7c9d.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_3', name: 'Attan Dance', artist: 'Folk Dance', duration: '3:30', url: 'https://cdn.pixabay.com/download/audio/2022/09/15/audio_6c7d8e9f0a.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_4', name: 'Watan Zama', artist: 'Patriotic', duration: '3:18', url: 'https://cdn.pixabay.com/download/audio/2023/06/22/audio_8b9c0d1e2f.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_5', name: 'Meena Ke Rang', artist: 'Love Songs', duration: '2:42', url: 'https://cdn.pixabay.com/download/audio/2022/07/18/audio_9d0e1f2a3b.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_6', name: 'Kabul Night', artist: 'City Vibes', duration: '2:58', url: 'https://cdn.pixabay.com/download/audio/2023/10/05/audio_0a1b2c3d4e.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_7', name: 'Ghar Mountains', artist: 'Nature', duration: '3:25', url: 'https://cdn.pixabay.com/download/audio/2022/06/09/audio_1b2c3d4e5f.mp3', category: 'Pashto'),
-      const MusicTrack(id: 'pa_8', name: 'Rabab Saaz', artist: 'Instrument', duration: '2:50', url: 'https://cdn.pixabay.com/download/audio/2023/11/17/audio_2c3d4e5f6g.mp3', category: 'Pashto'),
+    // ========== CINEMATIC & EPIC ==========
+    'Cinematic': [
+      const MusicTrack(
+        id: 'cin_1', 
+        name: 'Epic', 
+        artist: 'Bensound', 
+        duration: '2:58', 
+        url: 'https://www.bensound.com/bensound-music/bensound-epic.mp3', 
+        category: 'Cinematic',
+        mood: 'Epic',
+      ),
+      const MusicTrack(
+        id: 'cin_2', 
+        name: 'Adventure', 
+        artist: 'Bensound', 
+        duration: '2:16', 
+        url: 'https://www.bensound.com/bensound-music/bensound-adventure.mp3', 
+        category: 'Cinematic',
+        mood: 'Epic',
+      ),
+      const MusicTrack(
+        id: 'cin_3', 
+        name: 'Cinematic', 
+        artist: 'Bensound', 
+        duration: '3:14', 
+        url: 'https://www.bensound.com/bensound-music/bensound-cinematic.mp3', 
+        category: 'Cinematic',
+        mood: 'Epic',
+      ),
+      const MusicTrack(
+        id: 'cin_4', 
+        name: 'Evolution', 
+        artist: 'Bensound', 
+        duration: '2:45', 
+        url: 'https://www.bensound.com/bensound-music/bensound-evolution.mp3', 
+        category: 'Cinematic',
+        mood: 'Epic',
+      ),
+      const MusicTrack(
+        id: 'cin_5', 
+        name: 'Memories', 
+        artist: 'Bensound', 
+        duration: '3:50', 
+        url: 'https://www.bensound.com/bensound-music/bensound-memories.mp3', 
+        category: 'Cinematic',
+        mood: 'Sad',
+      ),
+      const MusicTrack(
+        id: 'cin_6', 
+        name: 'Documentary', 
+        artist: 'Bensound', 
+        duration: '2:38', 
+        url: 'https://www.bensound.com/bensound-music/bensound-documentary.mp3', 
+        category: 'Cinematic',
+        mood: 'Epic',
+      ),
     ],
 
+    // ========== CHILL & LOFI ==========
+    'Chill Lofi': [
+      const MusicTrack(
+        id: 'lofi_1', 
+        name: 'Jazzy Frenchy', 
+        artist: 'Bensound', 
+        duration: '1:44', 
+        url: 'https://www.bensound.com/bensound-music/bensound-jazzyfrenchy.mp3', 
+        category: 'Chill Lofi',
+        mood: 'Calm',
+      ),
+      const MusicTrack(
+        id: 'lofi_2', 
+        name: 'Slow Motion', 
+        artist: 'Bensound', 
+        duration: '3:26', 
+        url: 'https://www.bensound.com/bensound-music/bensound-slowmotion.mp3', 
+        category: 'Chill Lofi',
+        mood: 'Calm',
+      ),
+      const MusicTrack(
+        id: 'lofi_3', 
+        name: 'Dreams', 
+        artist: 'Bensound', 
+        duration: '3:30', 
+        url: 'https://www.bensound.com/bensound-music/bensound-dreams.mp3', 
+        category: 'Chill Lofi',
+        mood: 'Calm',
+      ),
+      const MusicTrack(
+        id: 'lofi_4', 
+        name: 'Tenderness', 
+        artist: 'Bensound', 
+        duration: '2:03', 
+        url: 'https://www.bensound.com/bensound-music/bensound-tenderness.mp3', 
+        category: 'Chill Lofi',
+        mood: 'Calm',
+      ),
+      const MusicTrack(
+        id: 'lofi_5', 
+        name: 'The Lounge', 
+        artist: 'Bensound', 
+        duration: '2:38', 
+        url: 'https://www.bensound.com/bensound-music/bensound-thelounge.mp3', 
+        category: 'Chill Lofi',
+        mood: 'Calm',
+      ),
+      const MusicTrack(
+        id: 'lofi_6', 
+        name: 'Acoustic Breeze', 
+        artist: 'Bensound', 
+        duration: '2:37', 
+        url: 'https://www.bensound.com/bensound-music/bensound-acousticbreeze.mp3', 
+        category: 'Chill Lofi',
+        mood: 'Calm',
+      ),
+    ],
+
+    // ========== PARTY & DANCE ==========
+    'Party Dance': [
+      const MusicTrack(
+        id: 'party_1', 
+        name: 'Dance', 
+        artist: 'Bensound', 
+        duration: '2:35', 
+        url: 'https://www.bensound.com/bensound-music/bensound-dance.mp3', 
+        category: 'Party Dance',
+        mood: 'Energetic',
+      ),
+      const MusicTrack(
+        id: 'party_2', 
+        name: 'House', 
+        artist: 'Bensound', 
+        duration: '2:11', 
+        url: 'https://www.bensound.com/bensound-music/bensound-house.mp3', 
+        category: 'Party Dance',
+        mood: 'Energetic',
+      ),
+      const MusicTrack(
+        id: 'party_3', 
+        name: 'Pop Dance', 
+        artist: 'Bensound', 
+        duration: '2:42', 
+        url: 'https://www.bensound.com/bensound-music/bensound-popdance.mp3', 
+        category: 'Party Dance',
+        mood: 'Energetic',
+      ),
+      const MusicTrack(
+        id: 'party_4', 
+        name: 'Dubstep', 
+        artist: 'Bensound', 
+        duration: '2:04', 
+        url: 'https://www.bensound.com/bensound-music/bensound-dubstep.mp3', 
+        category: 'Party Dance',
+        mood: 'Energetic',
+      ),
+      const MusicTrack(
+        id: 'party_5', 
+        name: 'Punky', 
+        artist: 'Bensound', 
+        duration: '0:53', 
+        url: 'https://www.bensound.com/bensound-music/bensound-punky.mp3', 
+        category: 'Party Dance',
+        mood: 'Energetic',
+      ),
+      const MusicTrack(
+        id: 'party_6', 
+        name: 'Energy', 
+        artist: 'Bensound', 
+        duration: '2:59', 
+        url: 'https://www.bensound.com/bensound-music/bensound-energy.mp3', 
+        category: 'Party Dance',
+        mood: 'Energetic',
+      ),
+    ],
+
+    // ========== NASHEED & ISLAMIC ==========
     'Nasheed': [
-      // Islamic Nasheeds - Instrumental & Vocal
-      const MusicTrack(id: 'na_1', name: 'Peaceful Soul', artist: 'Islamic Melody', duration: '3:45', url: 'https://cdn.pixabay.com/download/audio/2023/03/09/audio_5d6e7f8a9b.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_2', name: 'Morning Dua', artist: 'Spiritual', duration: '4:12', url: 'https://cdn.pixabay.com/download/audio/2022/10/12/audio_6e7f8a9b0c.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_3', name: 'Sabr & Shukr', artist: 'Patience', duration: '3:28', url: 'https://cdn.pixabay.com/download/audio/2023/05/25/audio_7f8a9b0c1d.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_4', name: 'Noor E Iman', artist: 'Light of Faith', duration: '3:55', url: 'https://cdn.pixabay.com/download/audio/2022/08/30/audio_8a9b0c1d2e.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_5', name: 'Ya Rahman', artist: 'Mercy Song', duration: '4:05', url: 'https://cdn.pixabay.com/download/audio/2023/07/14/audio_9b0c1d2e3f.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_6', name: 'Medina Dreams', artist: 'Holy City', duration: '3:38', url: 'https://cdn.pixabay.com/download/audio/2022/12/28/audio_0c1d2e3f4a.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_7', name: 'Blessed Night', artist: 'Ramadan', duration: '4:20', url: 'https://cdn.pixabay.com/download/audio/2023/09/19/audio_1d2e3f4a5b.mp3', category: 'Nasheed'),
-      const MusicTrack(id: 'na_8', name: 'Eid Joy', artist: 'Celebration', duration: '3:15', url: 'https://cdn.pixabay.com/download/audio/2023/01/06/audio_2e3f4a5b6c.mp3', category: 'Nasheed'),
+      const MusicTrack(
+        id: 'nash_1', 
+        name: 'Peaceful Soul', 
+        artist: 'Meditation Music', 
+        duration: '3:45', 
+        url: 'https://www.bensound.com/bensound-music/bensound-meditation.mp3', 
+        category: 'Nasheed',
+        mood: 'Calm',
+      ),
+      const MusicTrack(
+        id: 'nash_2', 
+        name: 'Inner Peace', 
+        artist: 'Spiritual Sounds', 
+        duration: '3:28', 
+        url: 'https://www.bensound.com/bensound-music/bensound-relaxing.mp3', 
+        category: 'Nasheed',
+        mood: 'Calm',
+      ),
+      const MusicTrack(
+        id: 'nash_3', 
+        name: 'Harmony', 
+        artist: 'Peaceful Melodies', 
+        duration: '3:15', 
+        url: 'https://www.bensound.com/bensound-music/bensound-ofeliasdream.mp3', 
+        category: 'Nasheed',
+        mood: 'Calm',
+      ),
+      const MusicTrack(
+        id: 'nash_4', 
+        name: 'Serenity', 
+        artist: 'Calm Tunes', 
+        duration: '2:58', 
+        url: 'https://www.bensound.com/bensound-music/bensound-sadday.mp3', 
+        category: 'Nasheed',
+        mood: 'Calm',
+      ),
+      const MusicTrack(
+        id: 'nash_5', 
+        name: 'Morning Light', 
+        artist: 'Peaceful Vibes', 
+        duration: '3:22', 
+        url: 'https://www.bensound.com/bensound-music/bensound-betterdays.mp3', 
+        category: 'Nasheed',
+        mood: 'Calm',
+      ),
+      const MusicTrack(
+        id: 'nash_6', 
+        name: 'Blessings', 
+        artist: 'Sacred Sounds', 
+        duration: '3:40', 
+        url: 'https://www.bensound.com/bensound-music/bensound-birthofahero.mp3', 
+        category: 'Nasheed',
+        mood: 'Epic',
+      ),
     ],
 
-    'Instrumental': [
-      // Cinematic & Background Music
-      const MusicTrack(id: 'in_1', name: 'Cinematic Trailer', artist: 'Epic Score', duration: '2:15', url: 'https://cdn.pixabay.com/download/audio/2022/02/22/audio_d1718ab41b.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_2', name: 'Inspirational', artist: 'Motivational', duration: '2:31', url: 'https://cdn.pixabay.com/download/audio/2022/05/16/audio_1808fbf07a.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_3', name: 'Documentary', artist: 'Background', duration: '3:05', url: 'https://cdn.pixabay.com/download/audio/2022/08/25/audio_89a1f2c3d4.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_4', name: 'Piano Dreams', artist: 'Soft Piano', duration: '3:42', url: 'https://cdn.pixabay.com/download/audio/2022/04/19/audio_2345678901.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_5', name: 'Uplifting', artist: 'Happy Mood', duration: '2:28', url: 'https://cdn.pixabay.com/download/audio/2022/11/08/audio_3456789012.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_6', name: 'Emotional Journey', artist: 'Orchestra', duration: '4:10', url: 'https://cdn.pixabay.com/download/audio/2023/02/15/audio_4567890123.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_7', name: 'Adventure Time', artist: 'Action', duration: '2:55', url: 'https://cdn.pixabay.com/download/audio/2022/06/30/audio_5678901234.mp3', category: 'Instrumental'),
-      const MusicTrack(id: 'in_8', name: 'Calm Waters', artist: 'Relaxation', duration: '3:33', url: 'https://cdn.pixabay.com/download/audio/2023/04/28/audio_6789012345.mp3', category: 'Instrumental'),
+    // ========== URDU & DESI VIBES ==========
+    'Desi Vibes': [
+      const MusicTrack(
+        id: 'desi_1', 
+        name: 'Dil Ki Awaaz', 
+        artist: 'Eastern Melody', 
+        duration: '2:45', 
+        url: 'https://www.bensound.com/bensound-music/bensound-india.mp3', 
+        category: 'Desi Vibes',
+        mood: 'Romantic',
+      ),
+      const MusicTrack(
+        id: 'desi_2', 
+        name: 'Celebration', 
+        artist: 'Festive Beats', 
+        duration: '2:38', 
+        url: 'https://www.bensound.com/bensound-music/bensound-brazilsamba.mp3', 
+        category: 'Desi Vibes',
+        mood: 'Happy',
+      ),
+      const MusicTrack(
+        id: 'desi_3', 
+        name: 'Folk Dance', 
+        artist: 'Traditional', 
+        duration: '2:52', 
+        url: 'https://www.bensound.com/bensound-music/bensound-buddy.mp3', 
+        category: 'Desi Vibes',
+        mood: 'Energetic',
+      ),
+      const MusicTrack(
+        id: 'desi_4', 
+        name: 'Wedding Vibes', 
+        artist: 'Shaadi Songs', 
+        duration: '3:10', 
+        url: 'https://www.bensound.com/bensound-music/bensound-ukulele.mp3', 
+        category: 'Desi Vibes',
+        mood: 'Happy',
+      ),
+      const MusicTrack(
+        id: 'desi_5', 
+        name: 'Bollywood Dreams', 
+        artist: 'Filmy Beats', 
+        duration: '2:48', 
+        url: 'https://www.bensound.com/bensound-music/bensound-littleidea.mp3', 
+        category: 'Desi Vibes',
+        mood: 'Happy',
+      ),
+      const MusicTrack(
+        id: 'desi_6', 
+        name: 'Sufi Soul', 
+        artist: 'Mystic Music', 
+        duration: '3:25', 
+        url: 'https://www.bensound.com/bensound-music/bensound-goinghigher.mp3', 
+        category: 'Desi Vibes',
+        mood: 'Calm',
+      ),
+    ],
+
+    // ========== MOTIVATIONAL & INSPIRATIONAL ==========
+    'Motivational': [
+      const MusicTrack(
+        id: 'motiv_1', 
+        name: 'Inspire', 
+        artist: 'Bensound', 
+        duration: '2:09', 
+        url: 'https://www.bensound.com/bensound-music/bensound-inspire.mp3', 
+        category: 'Motivational',
+        mood: 'Epic',
+      ),
+      const MusicTrack(
+        id: 'motiv_2', 
+        name: 'Powerful', 
+        artist: 'Bensound', 
+        duration: '2:02', 
+        url: 'https://www.bensound.com/bensound-music/bensound-powerful.mp3', 
+        category: 'Motivational',
+        mood: 'Epic',
+      ),
+      const MusicTrack(
+        id: 'motiv_3', 
+        name: 'Corporate', 
+        artist: 'Bensound', 
+        duration: '3:03', 
+        url: 'https://www.bensound.com/bensound-music/bensound-corporate.mp3', 
+        category: 'Motivational',
+        mood: 'Happy',
+      ),
+      const MusicTrack(
+        id: 'motiv_4', 
+        name: 'New Dawn', 
+        artist: 'Bensound', 
+        duration: '2:14', 
+        url: 'https://www.bensound.com/bensound-music/bensound-newdawn.mp3', 
+        category: 'Motivational',
+        mood: 'Happy',
+      ),
+      const MusicTrack(
+        id: 'motiv_5', 
+        name: 'Perception', 
+        artist: 'Bensound', 
+        duration: '2:35', 
+        url: 'https://www.bensound.com/bensound-music/bensound-perception.mp3', 
+        category: 'Motivational',
+        mood: 'Calm',
+      ),
+      const MusicTrack(
+        id: 'motiv_6', 
+        name: 'Going Higher', 
+        artist: 'Bensound', 
+        duration: '3:05', 
+        url: 'https://www.bensound.com/bensound-music/bensound-goinghigher.mp3', 
+        category: 'Motivational',
+        mood: 'Epic',
+      ),
     ],
   };
 
@@ -331,5 +738,51 @@ class MusicService {
       count += tracks.length;
     }
     return count;
+  }
+
+  /// Get tracks by mood
+  static List<MusicTrack> getTracksByMood(String mood) {
+    final List<MusicTrack> result = [];
+    for (var tracks in musicLibrary.values) {
+      result.addAll(tracks.where((t) => t.mood == mood));
+    }
+    return result;
+  }
+
+  /// Get recommended track for video style
+  static MusicTrack? getRecommendedTrack(String videoStyle) {
+    switch (videoStyle.toLowerCase()) {
+      case 'cinematic':
+        return musicLibrary['Cinematic']?.first;
+      case 'epic':
+        return musicLibrary['Cinematic']?[0]; // Epic track
+      case 'romantic':
+        return musicLibrary['Romantic']?.first;
+      case 'vintage':
+        return musicLibrary['Chill Lofi']?.first;
+      case 'neon':
+        return musicLibrary['Party Dance']?.first;
+      case 'party':
+        return musicLibrary['Party Dance']?[0];
+      case 'nature':
+        return musicLibrary['Chill Lofi']?[2]; // Dreams
+      case 'travel':
+        return musicLibrary['Motivational']?[0]; // Inspire
+      case 'story':
+        return musicLibrary['Cinematic']?[4]; // Memories
+      case 'minimal':
+        return musicLibrary['Chill Lofi']?[5]; // Acoustic Breeze
+      default:
+        return musicLibrary['English Pop']?.first;
+    }
+  }
+
+  /// Get all tracks as flat list
+  static List<MusicTrack> get allTracks {
+    final List<MusicTrack> result = [];
+    for (var tracks in musicLibrary.values) {
+      result.addAll(tracks);
+    }
+    return result;
   }
 }

@@ -30,7 +30,7 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
   String _selectedStyle = 'Cinematic';
   String _selectedDuration = '30s';
   MusicTrack? _selectedMusicTrack;
-  String _selectedMusicCategory = 'English';
+  String _selectedMusicCategory = 'English Pop';
   bool _isGenerating = false;
   bool _isGenerated = false;
   int _generationProgress = 0;

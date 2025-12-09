@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -42,18 +43,28 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
   late AnimationController _kenBurnsController;
   late AnimationController _glowController;
   late AnimationController _particleController;
+  late AnimationController _slideController;
+  late AnimationController _rotateController;
+  late AnimationController _blurController;
   
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<double> _kenBurnsAnimation;
   late Animation<double> _glowAnimation;
   late Animation<double> _particleAnimation;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _rotateAnimation;
+  late Animation<double> _blurAnimation;
   
   List<String> _imagePaths = [];
   
   // Professional visual effect settings
   final List<_ParticleData> _particles = [];
   final math.Random _random = math.Random();
+  
+  // Transition type for variety
+  int _transitionType = 0;
+  final int _totalTransitions = 6;
   
   // Style-specific effect config
   late Map<String, dynamic> _currentEffectConfig;
@@ -71,31 +82,31 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
   }
 
   void _initializeAnimations() {
-    // Scale animation (Ken Burns zoom effect)
+    // Scale animation (Ken Burns zoom effect) - Enhanced
     _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(milliseconds: 3500),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
-      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOutCubic),
     );
     
-    // Fade animation for smooth transitions
+    // Fade animation for smooth transitions - Enhanced
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOutQuart),
     );
     
-    // Ken Burns pan effect
+    // Ken Burns pan effect - Enhanced
     _kenBurnsController = AnimationController(
-      duration: const Duration(milliseconds: 4000),
+      duration: const Duration(milliseconds: 4500),
       vsync: this,
     );
-    _kenBurnsAnimation = Tween<double>(begin: -0.05, end: 0.05).animate(
-      CurvedAnimation(parent: _kenBurnsController, curve: Curves.easeInOut),
+    _kenBurnsAnimation = Tween<double>(begin: -0.08, end: 0.08).animate(
+      CurvedAnimation(parent: _kenBurnsController, curve: Curves.easeInOutSine),
     );
     
     // Glow pulse animation
@@ -113,6 +124,34 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
       vsync: this,
     )..repeat();
     _particleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_particleController);
+    
+    // NEW: Slide animation for slide transitions
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(1.0, 0.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
+    
+    // NEW: Rotate animation for 3D-like effects
+    _rotateController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _rotateAnimation = Tween<double>(begin: 0.05, end: 0.0).animate(
+      CurvedAnimation(parent: _rotateController, curve: Curves.easeOutBack),
+    );
+    
+    // NEW: Blur animation for dream-like transitions
+    _blurController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _blurAnimation = Tween<double>(begin: 5.0, end: 0.0).animate(
+      CurvedAnimation(parent: _blurController, curve: Curves.easeOut),
+    );
   }
 
   void _initializeEffects() {
@@ -220,6 +259,9 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
     _kenBurnsController.dispose();
     _glowController.dispose();
     _particleController.dispose();
+    _slideController.dispose();
+    _rotateController.dispose();
+    _blurController.dispose();
     MusicService.stop();
     super.dispose();
   }
@@ -250,19 +292,50 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
   }
 
   void _transitionToNextImage() {
-    // Reset animations for smooth transition
+    // Cycle through different transition types for variety
+    _transitionType = (_transitionType + 1) % _totalTransitions;
+    
+    // Reset all animations for smooth transition
     _fadeController.reset();
     _scaleController.reset();
     _kenBurnsController.reset();
+    _slideController.reset();
+    _rotateController.reset();
+    _blurController.reset();
     
     setState(() {
       _currentImageIndex = (_currentImageIndex + 1) % _imagePaths.length;
     });
     
-    // Start animations again
+    // Start animations based on transition type
     _fadeController.forward();
-    _scaleController.forward();
-    _kenBurnsController.forward();
+    
+    switch (_transitionType) {
+      case 0: // Ken Burns zoom
+        _scaleController.forward();
+        _kenBurnsController.forward();
+        break;
+      case 1: // Slide from right
+        _slideController.forward();
+        _scaleController.forward();
+        break;
+      case 2: // Rotate + zoom
+        _rotateController.forward();
+        _scaleController.forward();
+        break;
+      case 3: // Blur fade
+        _blurController.forward();
+        _kenBurnsController.forward();
+        break;
+      case 4: // Scale + Ken Burns
+        _scaleController.forward();
+        _kenBurnsController.forward();
+        break;
+      case 5: // All combined
+        _scaleController.forward();
+        _slideController.forward();
+        break;
+    }
   }
 
   void _pausePreview() {
@@ -512,27 +585,81 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
     }
 
     return AnimatedBuilder(
-      animation: Listenable.merge([_scaleAnimation, _fadeAnimation, _kenBurnsAnimation]),
+      animation: Listenable.merge([
+        _scaleAnimation, 
+        _fadeAnimation, 
+        _kenBurnsAnimation,
+        _slideAnimation,
+        _rotateAnimation,
+        _blurAnimation,
+      ]),
       builder: (context, child) {
+        Widget imageWidget = _buildImage(_imagePaths[_currentImageIndex]);
+        
+        // Apply blur effect if active
+        if (_blurAnimation.value > 0.1) {
+          imageWidget = ImageFiltered(
+            imageFilter: ImageFilter.blur(
+              sigmaX: _blurAnimation.value,
+              sigmaY: _blurAnimation.value,
+            ),
+            child: imageWidget,
+          );
+        }
+        
         return Transform.scale(
           scale: _scaleAnimation.value,
           child: Transform.translate(
-            offset: Offset(_kenBurnsAnimation.value * 50, _kenBurnsAnimation.value * 30),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 1000),
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0.05, 0),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: child,
-                  ),
-                );
-              },
-              child: _buildImage(_imagePaths[_currentImageIndex]),
+            offset: Offset(
+              _kenBurnsAnimation.value * 50 + _slideAnimation.value.dx * MediaQuery.of(context).size.width * 0.3,
+              _kenBurnsAnimation.value * 30,
+            ),
+            child: Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001) // perspective
+                ..rotateY(_rotateAnimation.value),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 800),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  // Choose transition based on current type
+                  switch (_transitionType % 4) {
+                    case 0:
+                      return FadeTransition(
+                        opacity: animation,
+                        child: ScaleTransition(
+                          scale: Tween<double>(begin: 0.95, end: 1.0).animate(animation),
+                          child: child,
+                        ),
+                      );
+                    case 1:
+                      return SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.1, 0),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        )),
+                        child: FadeTransition(opacity: animation, child: child),
+                      );
+                    case 2:
+                      return RotationTransition(
+                        turns: Tween<double>(begin: 0.02, end: 0.0).animate(animation),
+                        child: FadeTransition(opacity: animation, child: child),
+                      );
+                    default:
+                      return FadeTransition(
+                        opacity: animation,
+                        child: child,
+                      );
+                  }
+                },
+                child: Container(
+                  key: ValueKey(_currentImageIndex),
+                  child: imageWidget,
+                ),
+              ),
             ),
           ),
         );
