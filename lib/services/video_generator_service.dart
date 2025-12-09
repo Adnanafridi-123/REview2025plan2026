@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
-import 'package:image/image.dart' as img;
 import '../services/music_service.dart';
 
 
@@ -72,8 +70,7 @@ class SaveResult {
   });
 }
 
-/// Video Generator Service - Creates Animated Slideshow from photos
-/// Creates GIF slideshow or saves styled images for video preview
+/// Video Generator Service - Creates video slideshows from photos
 class VideoGeneratorService {
   static GeneratedVideo? _lastGeneratedVideo;
   static bool _isGenerating = false;
@@ -93,7 +90,7 @@ class VideoGeneratorService {
     'https://picsum.photos/1280/720?random=8',
   ];
 
-  /// Generate a slideshow video from photos with style effects
+  /// Generate a video slideshow from photos
   static Future<GeneratedVideo?> generateVideo({
     required List<String> imagePaths,
     required VideoStyle style,
@@ -134,10 +131,10 @@ class VideoGeneratorService {
 
       onProgress?.call(10, 'Processing ${finalImagePaths.length} photos...');
 
-      // Download/copy images to temp directory with proper naming
+      // Download/copy images to temp directory
       List<String> processedImages = [];
       for (int i = 0; i < finalImagePaths.length; i++) {
-        final progress = 10 + ((i / finalImagePaths.length) * 40).toInt();
+        final progress = 10 + ((i / finalImagePaths.length) * 60).toInt();
         onProgress?.call(progress, 'Processing image ${i + 1}/${finalImagePaths.length}...');
         
         final imagePath = finalImagePaths[i];
@@ -150,43 +147,19 @@ class VideoGeneratorService {
               const Duration(seconds: 30),
             );
             if (response.statusCode == 200) {
-              // Apply style filter to image
-              final styledBytes = await _applyStyleFilter(response.bodyBytes, style);
-              await File(outputPath).writeAsBytes(styledBytes);
+              await File(outputPath).writeAsBytes(response.bodyBytes);
               processedImages.add(outputPath);
             }
           } else {
-            // Copy local file and apply style
+            // Copy local file
             final sourceFile = File(imagePath);
             if (await sourceFile.exists()) {
-              final bytes = await sourceFile.readAsBytes();
-              final styledBytes = await _applyStyleFilter(bytes, style);
-              await File(outputPath).writeAsBytes(styledBytes);
+              await sourceFile.copy(outputPath);
               processedImages.add(outputPath);
             }
           }
         } catch (e) {
           if (kDebugMode) debugPrint('Error processing image $i: $e');
-          // If styling fails, just copy the original
-          try {
-            if (imagePath.startsWith('http')) {
-              final response = await http.get(Uri.parse(imagePath)).timeout(
-                const Duration(seconds: 30),
-              );
-              if (response.statusCode == 200) {
-                await File(outputPath).writeAsBytes(response.bodyBytes);
-                processedImages.add(outputPath);
-              }
-            } else {
-              final sourceFile = File(imagePath);
-              if (await sourceFile.exists()) {
-                await sourceFile.copy(outputPath);
-                processedImages.add(outputPath);
-              }
-            }
-          } catch (e2) {
-            if (kDebugMode) debugPrint('Error copying original image $i: $e2');
-          }
         }
       }
 
@@ -197,22 +170,17 @@ class VideoGeneratorService {
 
       // Create unique filename
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final slideShowFileName = 'memory_slideshow_$timestamp';
+      final videoFileName = 'memory_slideshow_$timestamp.slideshow';
       final thumbnailFileName = 'thumbnail_$timestamp.jpg';
       
-      final slideShowPath = '${videoDir.path}/$slideShowFileName';
+      final videoPath = '${videoDir.path}/$videoFileName';
       final thumbnailPath = '${videoDir.path}/$thumbnailFileName';
 
-      onProgress?.call(60, 'Creating ${_getStyleName(style)} slideshow...');
+      onProgress?.call(75, 'Creating slideshow with ${_getStyleName(style)} style...');
 
-      // Save slideshow info file (list of styled image paths)
-      try {
-        final slideShowDataPath = '$slideShowPath.data';
-        await File(slideShowDataPath).writeAsString(processedImages.join('\n'));
-        if (kDebugMode) debugPrint('Slideshow data saved to: $slideShowDataPath');
-      } catch (e) {
-        if (kDebugMode) debugPrint('Error saving slideshow data: $e');
-      }
+      // Save slideshow metadata (list of image paths)
+      final slideshowData = processedImages.join('\n');
+      await File(videoPath).writeAsString(slideshowData);
 
       onProgress?.call(90, 'Creating thumbnail...');
 
@@ -225,10 +193,10 @@ class VideoGeneratorService {
         }
       }
 
-      onProgress?.call(100, 'Slideshow created successfully!');
+      onProgress?.call(100, 'Video created successfully!');
 
       _lastGeneratedVideo = GeneratedVideo(
-        filePath: processedImages.isNotEmpty ? processedImages[0] : '',
+        filePath: videoPath,
         thumbnailPath: thumbnailPath,
         durationSeconds: durationSeconds,
         style: style,
@@ -242,7 +210,7 @@ class VideoGeneratorService {
       _isGenerating = false;
       
       if (kDebugMode) {
-        debugPrint('Slideshow generated successfully');
+        debugPrint('Slideshow generated successfully at: $videoPath');
         debugPrint('Photo count: ${processedImages.length}');
       }
       
@@ -252,114 +220,6 @@ class VideoGeneratorService {
       if (kDebugMode) debugPrint('Error generating video: $e');
       _isGenerating = false;
       return null;
-    }
-  }
-
-  /// Apply style-specific filter to image
-  static Future<Uint8List> _applyStyleFilter(Uint8List imageBytes, VideoStyle style) async {
-    try {
-      // Decode image
-      img.Image? image = img.decodeImage(imageBytes);
-      if (image == null) return imageBytes;
-
-      // Resize to 1280x720 if needed
-      if (image.width > 1280 || image.height > 720) {
-        image = img.copyResize(image, width: 1280, height: 720);
-      }
-
-      // Apply style-specific filters
-      switch (style) {
-        case VideoStyle.cinematic:
-          // Slightly desaturated, vignette effect
-          image = img.adjustColor(image, saturation: 0.95, contrast: 1.05);
-          image = img.vignette(image, amount: 0.3);
-          break;
-          
-        case VideoStyle.epic:
-          // High contrast, bold
-          image = img.adjustColor(image, contrast: 1.15, brightness: 1.02);
-          image = img.vignette(image, amount: 0.4);
-          break;
-          
-        case VideoStyle.romantic:
-          // Warm pink tones, soft
-          image = img.adjustColor(image, saturation: 0.9);
-          image = img.colorOffset(image, red: 15, green: 5, blue: -5);
-          image = img.gaussianBlur(image, radius: 1);
-          break;
-          
-        case VideoStyle.vintage:
-          // Sepia tone
-          image = img.sepia(image);
-          image = img.vignette(image, amount: 0.4);
-          break;
-          
-        case VideoStyle.neon:
-          // High saturation, vibrant
-          image = img.adjustColor(image, saturation: 1.35, contrast: 1.1, brightness: 1.03);
-          break;
-          
-        case VideoStyle.minimal:
-          // Clean, no effects - keep as is
-          break;
-          
-        case VideoStyle.party:
-          // Bright, festive
-          image = img.adjustColor(image, saturation: 1.25, brightness: 1.08, contrast: 1.08);
-          break;
-          
-        case VideoStyle.nature:
-          // Green tint
-          image = img.colorOffset(image, red: -10, green: 15, blue: -5);
-          break;
-          
-        case VideoStyle.travel:
-          // Warm adventure
-          image = img.colorOffset(image, red: 15, green: 8, blue: -10);
-          image = img.adjustColor(image, contrast: 1.08);
-          break;
-          
-        case VideoStyle.story:
-          // Letterbox with vignette
-          image = img.vignette(image, amount: 0.35);
-          break;
-          
-        case VideoStyle.wedding:
-          // Soft white, elegant
-          image = img.adjustColor(image, brightness: 1.06, saturation: 0.92, contrast: 0.98);
-          image = img.colorOffset(image, red: 5, green: 5, blue: 8);
-          break;
-          
-        case VideoStyle.birthday:
-          // Colorful, festive
-          image = img.adjustColor(image, saturation: 1.3, brightness: 1.1, contrast: 1.1);
-          break;
-          
-        case VideoStyle.family:
-          // Warm, nostalgic
-          image = img.colorOffset(image, red: 20, green: 10, blue: -10);
-          image = img.vignette(image, amount: 0.25);
-          image = img.adjustColor(image, brightness: 1.03);
-          break;
-          
-        case VideoStyle.dosti:
-          // Fun, energetic, bright
-          image = img.adjustColor(image, saturation: 1.2, brightness: 1.07, contrast: 1.08);
-          break;
-          
-        case VideoStyle.islamic:
-          // Peaceful, green tones
-          image = img.colorOffset(image, red: -10, green: 20, blue: -5);
-          image = img.adjustColor(image, contrast: 1.02);
-          image = img.vignette(image, amount: 0.2);
-          break;
-      }
-
-      // Encode back to JPEG
-      return Uint8List.fromList(img.encodeJpg(image, quality: 90));
-    } catch (e) {
-      if (kDebugMode) debugPrint('Error applying style filter: $e');
-      return imageBytes;
     }
   }
 
@@ -457,32 +317,32 @@ class VideoGeneratorService {
           success: false,
           message: 'Storage access denied. Check permissions.',
           savedCount: 0,
-          totalCount: video.photoCount,
+          totalCount: video.imagePaths.length,
         );
       }
       
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final folderName = 'Memories_2025';
+      final folderName = 'Memories_2025_$timestamp';
       final saveDir = Directory('$basePath/$folderName');
       
       if (!await saveDir.exists()) {
         await saveDir.create(recursive: true);
       }
       
-      onProgress?.call(50, 'Saving ${video.photoCount} styled photos...');
+      onProgress?.call(40, 'Saving ${video.imagePaths.length} photos...');
       
       int savedCount = 0;
       for (int i = 0; i < video.imagePaths.length; i++) {
+        final progress = 40 + ((i / video.imagePaths.length) * 55).toInt();
+        onProgress?.call(progress, 'Saving photo ${i + 1}/${video.imagePaths.length}...');
+        
         try {
           final sourceFile = File(video.imagePaths[i]);
           if (await sourceFile.exists()) {
-            final fileName = 'Memory_${timestamp}_${i + 1}.jpg';
+            final fileName = 'Memory_${i + 1}.jpg';
             final destPath = '${saveDir.path}/$fileName';
             await sourceFile.copy(destPath);
             savedCount++;
-            
-            final progress = 50 + ((i / video.imagePaths.length) * 45).toInt();
-            onProgress?.call(progress, 'Saved ${i + 1}/${video.imagePaths.length}...');
           }
         } catch (e) {
           if (kDebugMode) debugPrint('Error saving image $i: $e');
@@ -495,16 +355,16 @@ class VideoGeneratorService {
         return SaveResult(
           success: true,
           savedPath: saveDir.path,
-          message: 'Saved $savedCount styled photos to Downloads/Memories_2025',
+          message: '$savedCount photos saved to $folderName',
           savedCount: savedCount,
-          totalCount: video.photoCount,
+          totalCount: video.imagePaths.length,
         );
       } else {
         return SaveResult(
           success: false,
           message: 'Failed to save photos',
           savedCount: 0,
-          totalCount: video.photoCount,
+          totalCount: video.imagePaths.length,
         );
       }
       
@@ -514,7 +374,7 @@ class VideoGeneratorService {
         success: false,
         message: 'Error: ${e.toString()}',
         savedCount: 0,
-        totalCount: video.photoCount,
+        totalCount: video.imagePaths.length,
       );
     }
   }
@@ -633,15 +493,12 @@ class VideoGeneratorService {
   static Future<void> deleteGeneratedVideo() async {
     if (_lastGeneratedVideo != null) {
       try {
-        // Delete all processed images
-        for (final imagePath in _lastGeneratedVideo!.imagePaths) {
-          final imageFile = File(imagePath);
-          if (await imageFile.exists()) {
-            await imageFile.delete();
-          }
-        }
-        
+        final videoFile = File(_lastGeneratedVideo!.filePath);
         final thumbnailFile = File(_lastGeneratedVideo!.thumbnailPath);
+        
+        if (await videoFile.exists()) {
+          await videoFile.delete();
+        }
         if (await thumbnailFile.exists()) {
           await thumbnailFile.delete();
         }
