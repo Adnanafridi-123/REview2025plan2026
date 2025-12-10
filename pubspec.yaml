@@ -50,11 +50,9 @@ dependencies:
   cupertino_icons: ^1.0.2
   pedometer: ^4.0.1
   
-  # Image processing
-  image: ^4.1.7
-  
-  # Video creation using video_editor_sdk alternative
-  # Using flutter native approach for video creation
+  # NOTE: image package REMOVED - causes memory crash on mobile devices!
+  # Video creation now uses simple file copy approach (no processing)
+  # This is MUCH safer and prevents app crashes
 
 dev_dependencies:
   flutter_test:
