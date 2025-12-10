@@ -1027,107 +1027,354 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
     );
   }
 
+  // Category icons and colors for CapCut-like music selector
+  static const Map<String, Map<String, dynamic>> _musicCategoryStyles = {
+    'Naats & Nasheeds': {'icon': Icons.mosque, 'color': Color(0xFF4CAF50), 'emoji': '🕌'},
+    'Pashto Songs': {'icon': Icons.music_note, 'color': Color(0xFF2196F3), 'emoji': '🎵'},
+    'Urdu Songs': {'icon': Icons.album, 'color': Color(0xFF9C27B0), 'emoji': '🇵🇰'},
+    'Shaadi & Celebration': {'icon': Icons.celebration, 'color': Color(0xFFE91E63), 'emoji': '💒'},
+    'Cinematic': {'icon': Icons.movie_filter, 'color': Color(0xFF8E2DE2), 'emoji': '🎬'},
+    'Romantic': {'icon': Icons.favorite, 'color': Color(0xFFFF6B8A), 'emoji': '💕'},
+    'English Pop': {'icon': Icons.headphones, 'color': Color(0xFF00BCD4), 'emoji': '🎧'},
+    'Chill Lofi': {'icon': Icons.nights_stay, 'color': Color(0xFF607D8B), 'emoji': '🌙'},
+    'Party Dance': {'icon': Icons.nightlife, 'color': Color(0xFFFFD700), 'emoji': '🎉'},
+    'Motivational': {'icon': Icons.trending_up, 'color': Color(0xFFFF5722), 'emoji': '🚀'},
+    'Family & Friends': {'icon': Icons.family_restroom, 'color': Color(0xFF795548), 'emoji': '👨‍👩‍👧‍👦'},
+    'Sad & Emotional': {'icon': Icons.sentiment_very_dissatisfied, 'color': Color(0xFF78909C), 'emoji': '😢'},
+  };
+
   Widget _buildMusicSection(bool isDarkMode) {
     final categories = MusicService.categories;
     final currentTracks = MusicService.getTracksByCategory(_selectedMusicCategory);
+    final categoryStyle = _musicCategoryStyles[_selectedMusicCategory] ?? 
+        {'icon': Icons.music_note, 'color': const Color(0xFF667EEA), 'emoji': '🎵'};
+    final categoryColor = categoryStyle['color'] as Color;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Header with clear button
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Background Music', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: isDarkMode ? Colors.white : AppTheme.textWhite)),
+            Row(
+              children: [
+                Icon(Icons.library_music, color: categoryColor, size: 24),
+                const SizedBox(width: 10),
+                Text('Background Music', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : AppTheme.textWhite)),
+              ],
+            ),
             if (_selectedMusicTrack != null)
               GestureDetector(
                 onTap: () { _stopMusicPreview(); setState(() => _selectedMusicTrack = null); },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.close, color: Colors.red, size: 14), SizedBox(width: 4), Text('Clear', style: TextStyle(color: Colors.red, fontSize: 12))]),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.2), 
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.close, color: Colors.red, size: 14), 
+                    SizedBox(width: 4), 
+                    Text('Clear', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w600))
+                  ]),
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 12),
-        // Category Tabs
+        const SizedBox(height: 6),
+        // Selected track indicator
+        if (_selectedMusicTrack != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [categoryColor.withValues(alpha: 0.3), categoryColor.withValues(alpha: 0.1)]),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: categoryColor.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: categoryColor, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${_selectedMusicTrack!.name} - ${_selectedMusicTrack!.artist}',
+                    style: TextStyle(color: isDarkMode ? Colors.white : AppTheme.textWhite, fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: categoryColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _selectedMusicTrack!.language,
+                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 8),
+        // CapCut-style Category Cards
         SizedBox(
-          height: 36,
+          height: 80,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             itemCount: categories.length,
             itemBuilder: (context, index) {
               final category = categories[index];
               final isSelected = _selectedMusicCategory == category;
+              final style = _musicCategoryStyles[category] ?? 
+                  {'icon': Icons.music_note, 'color': const Color(0xFF667EEA), 'emoji': '🎵'};
+              final color = style['color'] as Color;
+              final emoji = style['emoji'] as String;
+              
               return GestureDetector(
                 onTap: () => setState(() => _selectedMusicCategory = category),
-                child: Container(
-                  margin: EdgeInsets.only(right: index < categories.length - 1 ? 8 : 0),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 85,
+                  margin: EdgeInsets.only(right: index < categories.length - 1 ? 10 : 0),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.iconPink : Colors.white.withValues(alpha: isDarkMode ? 0.1 : 0.15),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: isSelected ? AppTheme.iconPink : Colors.white.withValues(alpha: 0.2)),
+                    gradient: isSelected 
+                        ? LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [color, color.withValues(alpha: 0.7)],
+                          )
+                        : null,
+                    color: isSelected ? null : Colors.white.withValues(alpha: isDarkMode ? 0.1 : 0.15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isSelected ? color : Colors.white.withValues(alpha: 0.2),
+                      width: isSelected ? 2 : 1,
+                    ),
+                    boxShadow: isSelected ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ] : null,
                   ),
-                  alignment: Alignment.center,
-                  child: Text(category, style: TextStyle(color: isSelected ? Colors.white : (isDarkMode ? Colors.white70 : AppTheme.textWhite), fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 13)),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(emoji, style: const TextStyle(fontSize: 24)),
+                      const SizedBox(height: 4),
+                      Text(
+                        category.length > 10 ? '${category.substring(0, 8)}...' : category,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : (isDarkMode ? Colors.white70 : AppTheme.textWhite),
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          fontSize: 10,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
           ),
         ),
-        const SizedBox(height: 12),
-        // Music Tracks
+        const SizedBox(height: 14),
+        // Current category header
         Container(
-          height: 180,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: isDarkMode ? 0.1 : 0.15),
+            color: categoryColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Text(categoryStyle['emoji'] as String, style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 8),
+              Text(
+                _selectedMusicCategory,
+                style: TextStyle(
+                  color: categoryColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: categoryColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${currentTracks.length} tracks',
+                  style: TextStyle(color: categoryColor, fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Music Tracks List
+        Container(
+          height: 220,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: isDarkMode ? 0.08 : 0.12),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            border: Border.all(color: categoryColor.withValues(alpha: 0.2)),
           ),
           child: ListView.builder(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
+            physics: const BouncingScrollPhysics(),
             itemCount: currentTracks.length,
             itemBuilder: (context, index) {
               final track = currentTracks[index];
               final isSelected = _selectedMusicTrack?.id == track.id;
               final isPlaying = _currentlyPlayingTrackId == track.id && _isPlayingPreview;
+              
               return GestureDetector(
                 onTap: () => setState(() => _selectedMusicTrack = track),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(10),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.iconPink.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: isSelected ? AppTheme.iconPink : Colors.transparent, width: isSelected ? 2 : 0),
+                    gradient: isSelected 
+                        ? LinearGradient(colors: [categoryColor.withValues(alpha: 0.3), categoryColor.withValues(alpha: 0.15)])
+                        : null,
+                    color: isSelected ? null : Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isSelected ? categoryColor : Colors.transparent, 
+                      width: isSelected ? 2 : 0,
+                    ),
+                    boxShadow: isSelected ? [
+                      BoxShadow(
+                        color: categoryColor.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ] : null,
                   ),
                   child: Row(
                     children: [
+                      // Play button with animation
                       GestureDetector(
                         onTap: () => _toggleMusicPreview(track),
-                        child: Container(
-                          width: 36, height: 36,
-                          decoration: BoxDecoration(color: isPlaying ? AppTheme.iconPink : Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                          child: Icon(isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 18),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 44, 
+                          height: 44,
+                          decoration: BoxDecoration(
+                            gradient: isPlaying 
+                                ? LinearGradient(colors: [categoryColor, categoryColor.withValues(alpha: 0.7)])
+                                : null,
+                            color: isPlaying ? null : Colors.white.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: isPlaying ? categoryColor : Colors.white.withValues(alpha: 0.3), width: 2),
+                            boxShadow: isPlaying ? [
+                              BoxShadow(color: categoryColor.withValues(alpha: 0.5), blurRadius: 10),
+                            ] : null,
+                          ),
+                          child: Icon(
+                            isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, 
+                            color: Colors.white, 
+                            size: 24,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
+                      // Track info
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(track.name, style: TextStyle(color: isDarkMode ? Colors.white : AppTheme.textWhite, fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            Text('${track.artist} • ${track.duration}', style: TextStyle(color: (isDarkMode ? Colors.white : AppTheme.textWhite).withValues(alpha: 0.6), fontSize: 11)),
+                            Text(
+                              track.name, 
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.white : AppTheme.textWhite, 
+                                fontWeight: FontWeight.w600, 
+                                fontSize: 14,
+                              ), 
+                              maxLines: 1, 
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Text(
+                                  track.artist, 
+                                  style: TextStyle(
+                                    color: (isDarkMode ? Colors.white : AppTheme.textWhite).withValues(alpha: 0.6), 
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                                  width: 3, height: 3,
+                                  decoration: BoxDecoration(
+                                    color: (isDarkMode ? Colors.white : AppTheme.textWhite).withValues(alpha: 0.4),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                Text(
+                                  track.duration, 
+                                  style: TextStyle(
+                                    color: (isDarkMode ? Colors.white : AppTheme.textWhite).withValues(alpha: 0.6), 
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
-                      if (isSelected)
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(color: AppTheme.iconGreen, shape: BoxShape.circle),
-                          child: const Icon(Icons.check, color: Colors.white, size: 12),
-                        ),
+                      // Language & mood badges
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: categoryColor.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              track.language,
+                              style: TextStyle(color: categoryColor, fontSize: 9, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          if (isSelected)
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: AppTheme.iconGreen,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(color: AppTheme.iconGreen.withValues(alpha: 0.5), blurRadius: 6),
+                                ],
+                              ),
+                              child: const Icon(Icons.check, color: Colors.white, size: 12),
+                            )
+                          else
+                            Text(
+                              track.mood,
+                              style: TextStyle(
+                                color: (isDarkMode ? Colors.white : AppTheme.textWhite).withValues(alpha: 0.5),
+                                fontSize: 9,
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
