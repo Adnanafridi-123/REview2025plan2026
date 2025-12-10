@@ -53,6 +53,10 @@ dependencies:
   # REAL MP4 Video Creation - Native hardware encoder (no FFmpeg!)
   # Uses system h264 encoder - memory efficient, no crash
   flutter_quick_video_encoder: ^1.1.0
+  
+  # Local Notifications - for scheduled reminders
+  flutter_local_notifications: 17.2.4
+  timezone: 0.9.4
 
 dev_dependencies:
   flutter_test:

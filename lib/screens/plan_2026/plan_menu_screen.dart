@@ -1,15 +1,192 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/beautiful_back_button.dart';
+import '../../services/notification_service.dart';
+import '../../models/reminder.dart';
 import 'goals_dashboard_screen.dart';
 import 'habit_tracker_screen.dart';
 import 'analytics_screen.dart';
 import 'weekly_review_screen.dart';
 
-class PlanMenuScreen extends StatelessWidget {
+class PlanMenuScreen extends StatefulWidget {
   const PlanMenuScreen({super.key});
+
+  @override
+  State<PlanMenuScreen> createState() => _PlanMenuScreenState();
+}
+
+class _PlanMenuScreenState extends State<PlanMenuScreen> {
+  late Box<Reminder> _remindersBox;
+  List<Reminder> _reminders = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initReminders();
+  }
+
+  Future<void> _initReminders() async {
+    // Open or create reminders box
+    _remindersBox = await Hive.openBox<Reminder>('reminders');
+    
+    // If empty, add default preset reminders
+    if (_remindersBox.isEmpty) {
+      final defaults = PresetReminders.getDefaults();
+      for (var reminder in defaults) {
+        await _remindersBox.put(reminder.id, reminder);
+      }
+    }
+    
+    setState(() {
+      _reminders = _remindersBox.values.toList();
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _toggleReminder(Reminder reminder, bool enabled) async {
+    final notificationService = NotificationService();
+    
+    // Request permission first
+    if (enabled) {
+      final hasPermission = await notificationService.requestPermission();
+      if (!hasPermission) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please enable notifications in settings'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+    }
+    
+    // Update reminder status
+    final updated = reminder.copyWith(isEnabled: enabled);
+    await _remindersBox.put(reminder.id, updated);
+    
+    if (enabled) {
+      // Schedule notification
+      if (reminder.frequency == 'weekly' && reminder.weekday != null) {
+        await notificationService.scheduleWeeklyReminder(
+          id: reminder.id,
+          title: '${reminder.emoji} ${reminder.title}',
+          body: reminder.description,
+          weekday: reminder.weekday!,
+          time: TimeOfDay(hour: reminder.hour, minute: reminder.minute),
+          payload: 'reminder_${reminder.id}',
+        );
+      } else {
+        await notificationService.scheduleDailyReminder(
+          id: reminder.id,
+          title: '${reminder.emoji} ${reminder.title}',
+          body: reminder.description,
+          time: TimeOfDay(hour: reminder.hour, minute: reminder.minute),
+          payload: 'reminder_${reminder.id}',
+        );
+      }
+      
+      // Show test notification
+      await notificationService.showNotification(
+        id: 9999,
+        title: '✅ Reminder Set!',
+        body: '${reminder.title} - ${reminder.scheduleDescription}',
+      );
+    } else {
+      // Cancel notification
+      await notificationService.cancelReminder(reminder.id);
+    }
+    
+    setState(() {
+      _reminders = _remindersBox.values.toList();
+    });
+  }
+
+  Future<void> _addCustomReminder(String title, TimeOfDay time) async {
+    final notificationService = NotificationService();
+    
+    // Request permission
+    final hasPermission = await notificationService.requestPermission();
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enable notifications in settings'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+    
+    // Generate unique ID
+    final id = 2000 + DateTime.now().millisecondsSinceEpoch % 1000;
+    
+    // Format time string before async operations
+    final timeString = '${time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod}:${time.minute.toString().padLeft(2, '0')} ${time.period == DayPeriod.am ? 'AM' : 'PM'}';
+    
+    final reminder = Reminder(
+      id: id,
+      title: title,
+      description: 'Custom reminder - $timeString',
+      hour: time.hour,
+      minute: time.minute,
+      isEnabled: true,
+      emoji: '⏰',
+      frequency: 'daily',
+      isPreset: false,
+      createdAt: DateTime.now(),
+    );
+    
+    await _remindersBox.put(id, reminder);
+    
+    // Schedule notification
+    await notificationService.scheduleDailyReminder(
+      id: id,
+      title: '⏰ $title',
+      body: 'Time for: $title',
+      time: time,
+      payload: 'custom_reminder_$id',
+    );
+    
+    // Show confirmation
+    await notificationService.showNotification(
+      id: 9998,
+      title: '✅ Custom Reminder Set!',
+      body: '$title at $timeString',
+    );
+    
+    setState(() {
+      _reminders = _remindersBox.values.toList();
+    });
+  }
+
+  Future<void> _deleteReminder(Reminder reminder) async {
+    if (reminder.isPreset) return; // Don't delete preset reminders
+    
+    await NotificationService().cancelReminder(reminder.id);
+    await _remindersBox.delete(reminder.id);
+    
+    setState(() {
+      _reminders = _remindersBox.values.toList();
+    });
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${reminder.title} deleted'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,7 +298,7 @@ class PlanMenuScreen extends StatelessWidget {
                           emoji: '🔔',
                           title: 'Reminders',
                           subtitle: 'Custom notifications set karein',
-                          stats: 'Stay on track',
+                          stats: '${_reminders.where((r) => r.isEnabled).length} active',
                           gradient: const LinearGradient(
                             colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
                           ),
@@ -546,205 +723,228 @@ class PlanMenuScreen extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.7,
-        ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            
-            // Title
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Text('🔔', style: TextStyle(fontSize: 24)),
-                  SizedBox(width: 10),
-                  Text(
-                    'Reminders',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D3436),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Reminder Options
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildReminderOption(
-                    '🌅',
-                    'Morning Reminder',
-                    'Subah 7 AM - Goals review',
-                    true,
-                    (val) {},
-                  ),
-                  _buildReminderOption(
-                    '🏃',
-                    'Exercise Reminder',
-                    'Subah 8 AM - Workout time',
-                    false,
-                    (val) {},
-                  ),
-                  _buildReminderOption(
-                    '📚',
-                    'Study Reminder',
-                    'Sham 6 PM - Learning time',
-                    false,
-                    (val) {},
-                  ),
-                  _buildReminderOption(
-                    '🌙',
-                    'Night Review',
-                    'Raat 9 PM - Day review',
-                    true,
-                    (val) {},
-                  ),
-                  _buildReminderOption(
-                    '📅',
-                    'Weekly Check-in',
-                    'Sunday 10 AM - Hafta review',
-                    true,
-                    (val) {},
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Custom Reminder
-                  GestureDetector(
-                    onTap: () => _showAddCustomReminder(context),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!, style: BorderStyle.solid),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_circle_outline, color: Colors.grey[600]),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Add Custom Reminder',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReminderOption(String emoji, String title, String time, bool isEnabled, Function(bool) onChanged) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool enabled = isEnabled;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: enabled ? const Color(0xFFFF6B6B).withValues(alpha: 0.1) : Colors.grey[50],
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: enabled ? const Color(0xFFFF6B6B).withValues(alpha: 0.3) : Colors.grey[200]!,
-            ),
-          ),
-          child: Row(
-            children: [
-              Text(emoji, style: const TextStyle(fontSize: 28)),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              
+              // Title
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2D3436),
+                    const Text('🔔', style: TextStyle(fontSize: 24)),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Reminders',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2D3436),
+                        ),
                       ),
                     ),
                     Text(
-                      time,
+                      '${_reminders.where((r) => r.isEnabled).length} active',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
+                        fontSize: 14,
+                        color: Colors.grey[500],
                       ),
                     ),
                   ],
                 ),
               ),
-              Switch(
-                value: enabled,
-                onChanged: (val) {
-                  setState(() => enabled = val);
-                  onChanged(val);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(val ? '$title enabled' : '$title disabled'),
-                      behavior: SnackBarBehavior.floating,
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-                },
-                activeTrackColor: const Color(0xFFFF6B6B).withValues(alpha: 0.5),
-                thumbColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return const Color(0xFFFF6B6B);
-                  }
-                  return Colors.grey;
-                }),
+              
+              // Reminder Options
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children: [
+                          // Preset Reminders
+                          ..._reminders.where((r) => r.isPreset).map((reminder) =>
+                            _buildReminderOption(
+                              reminder,
+                              (enabled) async {
+                                await _toggleReminder(reminder, enabled);
+                                setSheetState(() {});
+                              },
+                            ),
+                          ),
+                          
+                          // Custom Reminders
+                          if (_reminders.any((r) => !r.isPreset)) ...[
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Custom Reminders',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF636E72),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ..._reminders.where((r) => !r.isPreset).map((reminder) =>
+                              _buildReminderOption(
+                                reminder,
+                                (enabled) async {
+                                  await _toggleReminder(reminder, enabled);
+                                  setSheetState(() {});
+                                },
+                                showDelete: true,
+                                onDelete: () async {
+                                  await _deleteReminder(reminder);
+                                  setSheetState(() {});
+                                },
+                              ),
+                            ),
+                          ],
+                          
+                          const SizedBox(height: 20),
+                          
+                          // Add Custom Reminder Button
+                          GestureDetector(
+                            onTap: () => _showAddCustomReminder(context, setSheetState),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey[300]!, style: BorderStyle.solid),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_circle_outline, color: Colors.grey[600]),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Add Custom Reminder',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 20),
+                        ],
+                      ),
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  void _showAddCustomReminder(BuildContext context) {
+  Widget _buildReminderOption(
+    Reminder reminder,
+    Function(bool) onChanged, {
+    bool showDelete = false,
+    VoidCallback? onDelete,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: reminder.isEnabled ? const Color(0xFFFF6B6B).withValues(alpha: 0.1) : Colors.grey[50],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: reminder.isEnabled ? const Color(0xFFFF6B6B).withValues(alpha: 0.3) : Colors.grey[200]!,
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(reminder.emoji, style: const TextStyle(fontSize: 28)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  reminder.title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2D3436),
+                  ),
+                ),
+                Text(
+                  reminder.scheduleDescription,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (showDelete && onDelete != null)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
+              onPressed: onDelete,
+            ),
+          Switch(
+            value: reminder.isEnabled,
+            onChanged: (val) {
+              onChanged(val);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(val 
+                    ? '${reminder.title} enabled - You will receive notifications!'
+                    : '${reminder.title} disabled'),
+                  backgroundColor: val ? const Color(0xFF00C853) : Colors.grey,
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            activeTrackColor: const Color(0xFFFF6B6B).withValues(alpha: 0.5),
+            thumbColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return const Color(0xFFFF6B6B);
+              }
+              return Colors.grey;
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddCustomReminder(BuildContext context, StateSetter setSheetState) {
     final titleController = TextEditingController();
     TimeOfDay selectedTime = TimeOfDay.now();
     
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Text('Custom Reminder'),
           content: Column(
@@ -760,8 +960,11 @@ class PlanMenuScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.access_time),
-                title: Text('Time: ${selectedTime.format(context)}'),
+                leading: const Icon(Icons.access_time, color: Color(0xFFFF6B6B)),
+                title: Text(
+                  'Time: ${selectedTime.format(context)}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 trailing: const Icon(Icons.edit),
                 onTap: () async {
                   final time = await showTimePicker(
@@ -769,29 +972,28 @@ class PlanMenuScreen extends StatelessWidget {
                     initialTime: selectedTime,
                   );
                   if (time != null) {
-                    setState(() => selectedTime = time);
+                    setDialogState(() => selectedTime = time);
                   }
                 },
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Daily notification at this time',
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
               ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (titleController.text.isNotEmpty) {
-                  Navigator.pop(context);
-                  Navigator.pop(context); // Close reminders sheet too
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Reminder set for ${selectedTime.format(context)}'),
-                      backgroundColor: const Color(0xFFFF6B6B),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                  Navigator.pop(dialogContext);
+                  await _addCustomReminder(titleController.text, selectedTime);
+                  setSheetState(() {});
                 }
               },
               style: ElevatedButton.styleFrom(
