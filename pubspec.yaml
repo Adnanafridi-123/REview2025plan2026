@@ -50,7 +50,10 @@ dependencies:
   cupertino_icons: ^1.0.2
   pedometer: ^4.0.1
   
-  # Image Processing for video slideshow
+  # Video Creation - Creates REAL MP4 videos from images
+  flutter_quick_video_encoder: ^1.7.2
+  
+  # Image processing
   image: ^4.1.7
 
 dev_dependencies:

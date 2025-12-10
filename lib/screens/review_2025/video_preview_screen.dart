@@ -7,8 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 
 import '../../providers/app_provider.dart';
 import '../../services/video_generator_service.dart';
@@ -396,85 +394,33 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
     
     setState(() {
       _isSaving = true;
-      _saveMessage = 'Preparing video...';
+      _saveMessage = 'Preparing to save...';
     });
     
     _pausePreview();
     
     try {
-      // Check if this is a real video (MP4)
-      if (widget.video.isRealVideo && widget.video.filePath.endsWith('.mp4')) {
-        // Save actual video file
-        final result = await VideoGeneratorService.saveVideoToDownloads(
-          widget.video,
-          onProgress: (progress, status) {
-            if (mounted) {
-              setState(() {
-                _saveMessage = status;
-              });
-            }
-          },
-        );
-        
-        _showSaveResult(result.success, result.message);
-        return;
-      }
-      
-      // Fallback: Save as images if not a real video
-      final saveDir = await _getDownloadFolder();
-      
-      if (saveDir == null) {
-        _showSaveResult(false, 'Cannot access storage folder');
-        return;
-      }
-      
-      if (kDebugMode) {
-        debugPrint('Save directory: $saveDir');
-      }
-      
-      int savedCount = 0;
-      
-      for (int i = 0; i < _imagePaths.length; i++) {
-        setState(() {
-          _saveMessage = 'Saving ${i + 1}/${_imagePaths.length}...';
-        });
-        
-        final url = _imagePaths[i];
-        final fileName = 'memory_${i + 1}.jpg';
-        final filePath = '$saveDir/$fileName';
-        
-        try {
-          if (url.startsWith('http')) {
-            final response = await http.get(Uri.parse(url)).timeout(
-              const Duration(seconds: 20),
-            );
-            
-            if (response.statusCode == 200) {
-              final file = File(filePath);
-              await file.writeAsBytes(response.bodyBytes);
-              savedCount++;
-              if (kDebugMode) {
-                debugPrint('Saved: $fileName (${response.bodyBytes.length} bytes)');
-              }
-            }
-          } else {
-            final sourceFile = File(url);
-            if (await sourceFile.exists()) {
-              await sourceFile.copy(filePath);
-              savedCount++;
-            }
+      // Always use VideoGeneratorService to save
+      final result = await VideoGeneratorService.saveVideoToDownloads(
+        widget.video,
+        onProgress: (progress, status) {
+          if (mounted) {
+            setState(() {
+              _saveMessage = status;
+            });
           }
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint('Error saving $fileName: $e');
-          }
-        }
-      }
+        },
+      );
       
-      if (savedCount > 0) {
-        _showSaveResult(true, 'Saved $savedCount images to Downloads');
+      if (result.success) {
+        // Show success with appropriate message
+        final isVideo = widget.video.isRealVideo && widget.video.filePath.endsWith('.mp4');
+        final successMsg = isVideo 
+            ? '🎬 Video saved! ${result.message}'
+            : '📸 ${result.message}';
+        _showSaveResult(true, successMsg);
       } else {
-        _showSaveResult(false, 'Failed to save images');
+        _showSaveResult(false, result.message);
       }
       
     } catch (e) {
@@ -485,61 +431,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
     }
   }
   
-  Future<String?> _getDownloadFolder() async {
-    try {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final folderName = 'Memories_2025_$timestamp';
-      
-      if (Platform.isAndroid) {
-        final extDir = await getExternalStorageDirectory();
-        if (extDir != null) {
-          final basePath = extDir.parent.parent.parent.parent.path;
-          
-          final downloadPath = '$basePath/Download/$folderName';
-          try {
-            final dir = Directory(downloadPath);
-            await dir.create(recursive: true);
-            return downloadPath;
-          } catch (e) {
-            if (kDebugMode) debugPrint('Download folder failed: $e');
-          }
-          
-          final picturesPath = '$basePath/Pictures/$folderName';
-          try {
-            final dir = Directory(picturesPath);
-            await dir.create(recursive: true);
-            return picturesPath;
-          } catch (e) {
-            if (kDebugMode) debugPrint('Pictures folder failed: $e');
-          }
-          
-          final dcimPath = '$basePath/DCIM/$folderName';
-          try {
-            final dir = Directory(dcimPath);
-            await dir.create(recursive: true);
-            return dcimPath;
-          } catch (e) {
-            if (kDebugMode) debugPrint('DCIM folder failed: $e');
-          }
-          
-          final appPath = '${extDir.path}/$folderName';
-          final dir = Directory(appPath);
-          await dir.create(recursive: true);
-          return appPath;
-        }
-      }
-      
-      final appDir = await getApplicationDocumentsDirectory();
-      final fallbackPath = '${appDir.path}/$folderName';
-      final dir = Directory(fallbackPath);
-      await dir.create(recursive: true);
-      return fallbackPath;
-      
-    } catch (e) {
-      if (kDebugMode) debugPrint('Get folder error: $e');
-      return null;
-    }
-  }
+
   
   void _showSaveResult(bool success, String message) {
     if (!mounted) return;

@@ -277,17 +277,24 @@ class _HealthTrackerScreenState extends State<HealthTrackerScreen> with TickerPr
 
   Widget _buildDateSelector() {
     return Container(
-      height: 80,
+      height: 90,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: 7,
         itemBuilder: (context, index) {
           final date = DateTime.now().subtract(Duration(days: 6 - index));
-          final isSelected = DateFormat('yyyy-MM-dd').format(date) == 
-                            DateFormat('yyyy-MM-dd').format(_selectedDate);
-          final isToday = DateFormat('yyyy-MM-dd').format(date) == 
-                         DateFormat('yyyy-MM-dd').format(DateTime.now());
+          final dateKey = DateFormat('yyyy-MM-dd').format(date);
+          final isSelected = dateKey == DateFormat('yyyy-MM-dd').format(_selectedDate);
+          final isToday = dateKey == DateFormat('yyyy-MM-dd').format(DateTime.now());
+          
+          // Get step data for this date from Hive
+          final dayRecord = _healthBox.values.cast<HealthRecord?>().firstWhere(
+            (r) => r != null && DateFormat('yyyy-MM-dd').format(r.date) == dateKey,
+            orElse: () => null,
+          );
+          final daySteps = dayRecord?.steps ?? 0;
+          final hasStepData = daySteps > 0;
           
           return GestureDetector(
             onTap: () {
@@ -297,11 +304,15 @@ class _HealthTrackerScreenState extends State<HealthTrackerScreen> with TickerPr
               });
             },
             child: Container(
-              width: 55,
+              width: 60,
               margin: const EdgeInsets.only(right: 10),
               decoration: BoxDecoration(
                 color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
+                border: isToday ? Border.all(
+                  color: isSelected ? const Color(0xFF00C9FF) : Colors.white,
+                  width: 2,
+                ) : null,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -309,27 +320,57 @@ class _HealthTrackerScreenState extends State<HealthTrackerScreen> with TickerPr
                   Text(
                     DateFormat('EEE').format(date),
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       color: isSelected ? Colors.grey[600] : Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     date.day.toString(),
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: isSelected ? const Color(0xFF00C9FF) : Colors.white,
                     ),
                   ),
                   if (isToday)
                     Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      width: 6,
-                      height: 6,
+                      margin: const EdgeInsets.only(top: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                       decoration: BoxDecoration(
                         color: isSelected ? const Color(0xFF00C9FF) : Colors.white,
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Aaj',
+                        style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : const Color(0xFF00C9FF),
+                        ),
+                      ),
+                    ),
+                  if (!isToday && hasStepData)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        _formatNumber(daySteps),
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? const Color(0xFF4CAF50) : Colors.white70,
+                        ),
+                      ),
+                    ),
+                  if (!isToday && !hasStepData)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        '0',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: isSelected ? Colors.grey[400] : Colors.white38,
+                        ),
                       ),
                     ),
                 ],
@@ -436,29 +477,11 @@ class _HealthTrackerScreenState extends State<HealthTrackerScreen> with TickerPr
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       children: [
-        // AUTOMATIC STEP COUNTER - Main Feature
+        // AUTOMATIC STEP COUNTER - Main Feature (Today)
         if (isToday) _buildAutoStepCounter(),
         
-        // Manual Step Tracker (for past days)
-        if (!isToday)
-          _TrackerCard(
-            emoji: '👟',
-            title: 'Qadam (Steps)',
-            subtitle: '${_todayRecord?.steps ?? 0}/10,000 steps',
-            value: (_todayRecord?.steps ?? 0).toDouble(),
-            maxValue: 10000,
-            color: const Color(0xFF4CAF50),
-            onIncrease: () {
-              _todayRecord?.steps = (_todayRecord?.steps ?? 0) + 500;
-              _updateRecord();
-            },
-            onDecrease: () {
-              if ((_todayRecord?.steps ?? 0) > 0) {
-                _todayRecord?.steps = (_todayRecord?.steps ?? 0) - 500;
-                _updateRecord();
-              }
-            },
-          ),
+        // REAL Step Data Display (for past days - NO manual buttons)
+        if (!isToday) _buildPastDayStepsCard(),
         
         // Water Tracker
         _TrackerCard(
@@ -737,13 +760,13 @@ class _HealthTrackerScreenState extends State<HealthTrackerScreen> with TickerPr
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStatItem('🔥', '${calories.toStringAsFixed(0)}', 'Calories'),
+                  _buildStatItem('🔥', calories.toStringAsFixed(0), 'Calories'),
                   Container(
                     width: 1,
                     height: 40,
                     color: Colors.white.withValues(alpha: 0.3),
                   ),
-                  _buildStatItem('📍', '${distance.toStringAsFixed(2)}', 'KM'),
+                  _buildStatItem('📍', distance.toStringAsFixed(2), 'KM'),
                   Container(
                     width: 1,
                     height: 40,
@@ -780,6 +803,244 @@ class _HealthTrackerScreenState extends State<HealthTrackerScreen> with TickerPr
           ),
         ),
       ],
+    );
+  }
+
+  // Past Day Steps Card - Shows REAL saved data (no manual input)
+  Widget _buildPastDayStepsCard() {
+    final steps = _todayRecord?.steps ?? 0;
+    final goal = 10000;
+    final progress = (steps / goal).clamp(0.0, 1.0);
+    final calories = _calculateCalories(steps);
+    final distance = _calculateDistance(steps);
+    final dateStr = DateFormat('d MMM').format(_selectedDate);
+    
+    final bool goalReached = steps >= goal;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: steps > 0 
+              ? [const Color(0xFF4CAF50), const Color(0xFF8BC34A)]
+              : [const Color(0xFF607D8B), const Color(0xFF90A4AE)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: (steps > 0 ? const Color(0xFF4CAF50) : const Color(0xFF607D8B)).withValues(alpha: 0.4),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text('👟', style: TextStyle(fontSize: 24)),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$dateStr ke Qadam',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Icon(
+                            steps > 0 ? Icons.history : Icons.do_not_disturb,
+                            color: Colors.white70,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            steps > 0 ? 'Recorded Data' : 'No step data',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if (goalReached)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('🎉', style: TextStyle(fontSize: 14)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Goal!',
+                        style: TextStyle(
+                          color: Color(0xFF4CAF50),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          
+          // Step Count Display
+          SizedBox(
+            width: 140,
+            height: 140,
+            child: Stack(
+              children: [
+                // Background Circle
+                SizedBox(
+                  width: 140,
+                  height: 140,
+                  child: CircularProgressIndicator(
+                    value: 1,
+                    strokeWidth: 10,
+                    backgroundColor: Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.white.withValues(alpha: 0.2),
+                    ),
+                  ),
+                ),
+                // Progress Circle
+                SizedBox(
+                  width: 140,
+                  height: 140,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 10,
+                    backgroundColor: Colors.transparent,
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                    strokeCap: StrokeCap.round,
+                  ),
+                ),
+                // Center Content
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _formatNumber(steps),
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const Text(
+                        'QADAM',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white70,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Progress Percentage
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              steps > 0 
+                  ? '${(progress * 100).toInt()}% of 10,000 goal'
+                  : 'No steps recorded this day',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Stats Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildStatItem('🔥', calories.toStringAsFixed(0), 'Calories'),
+              Container(
+                width: 1,
+                height: 35,
+                color: Colors.white.withValues(alpha: 0.3),
+              ),
+              _buildStatItem('📍', distance.toStringAsFixed(2), 'KM'),
+              Container(
+                width: 1,
+                height: 35,
+                color: Colors.white.withValues(alpha: 0.3),
+              ),
+              _buildStatItem('🎯', '10,000', 'Goal'),
+            ],
+          ),
+          
+          // Info Note
+          if (steps == 0)
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.white70, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Is din koi step count save nahi hua. Kal se automatic tracking hogi!',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 

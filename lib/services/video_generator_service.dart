@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show Uint8List, kDebugMode, debugPrint;
+
+import 'package:flutter_quick_video_encoder/flutter_quick_video_encoder.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
@@ -70,27 +73,36 @@ class SaveResult {
   });
 }
 
-/// Video Generator Service - Creates video slideshows from photos
+/// Video Generator Service - Creates REAL MP4 videos from photos
 class VideoGeneratorService {
   static GeneratedVideo? _lastGeneratedVideo;
   static bool _isGenerating = false;
   
   static GeneratedVideo? get lastGeneratedVideo => _lastGeneratedVideo;
   static bool get isGenerating => _isGenerating;
+  
+  // Video encoding settings
+  static const int _videoWidth = 720;
+  static const int _videoHeight = 1280;
+  static const int _fps = 24;
+  static const int _bitRate = 4000000; // 4 Mbps
+  
+  // Audio settings (required by encoder, even if no audio)
+  static const int _audioChannels = 1;
+  static const int _audioBitrate = 128000;
+  static const int _sampleRate = 44100;
 
   // Demo image URLs for when user has no photos
   static const List<String> _demoImages = [
-    'https://picsum.photos/1280/720?random=1',
-    'https://picsum.photos/1280/720?random=2',
-    'https://picsum.photos/1280/720?random=3',
-    'https://picsum.photos/1280/720?random=4',
-    'https://picsum.photos/1280/720?random=5',
-    'https://picsum.photos/1280/720?random=6',
-    'https://picsum.photos/1280/720?random=7',
-    'https://picsum.photos/1280/720?random=8',
+    'https://picsum.photos/720/1280?random=1',
+    'https://picsum.photos/720/1280?random=2',
+    'https://picsum.photos/720/1280?random=3',
+    'https://picsum.photos/720/1280?random=4',
+    'https://picsum.photos/720/1280?random=5',
+    'https://picsum.photos/720/1280?random=6',
   ];
 
-  /// Generate a video slideshow from photos
+  /// Generate a REAL MP4 video from photos
   static Future<GeneratedVideo?> generateVideo({
     required List<String> imagePaths,
     required VideoStyle style,
@@ -106,13 +118,13 @@ class VideoGeneratorService {
     _isGenerating = true;
 
     try {
-      onProgress?.call(5, 'Preparing images...');
+      onProgress?.call(5, 'Initializing video encoder...');
       
       // Use demo images if no photos provided
       List<String> finalImagePaths = imagePaths.isNotEmpty ? imagePaths : _demoImages;
       
       if (kDebugMode) {
-        debugPrint('Using ${finalImagePaths.length} images for video');
+        debugPrint('Creating video from ${finalImagePaths.length} images');
       }
 
       // Get app directory for saving
@@ -122,40 +134,51 @@ class VideoGeneratorService {
         await videoDir.create(recursive: true);
       }
 
-      // Temp directory for processing
-      final tempDir = Directory('${directory.path}/temp_video');
-      if (await tempDir.exists()) {
-        await tempDir.delete(recursive: true);
-      }
-      await tempDir.create(recursive: true);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final videoFileName = 'memory_video_$timestamp.mp4';
+      final thumbnailFileName = 'thumbnail_$timestamp.jpg';
+      
+      final videoPath = '${videoDir.path}/$videoFileName';
+      final thumbnailPath = '${videoDir.path}/$thumbnailFileName';
 
-      onProgress?.call(10, 'Processing ${finalImagePaths.length} photos...');
+      onProgress?.call(10, 'Loading and processing images...');
 
-      // Download/copy images to temp directory
-      List<String> processedImages = [];
+      // Load all images as RGBA bytes
+      List<Uint8List> processedImages = [];
+      
       for (int i = 0; i < finalImagePaths.length; i++) {
-        final progress = 10 + ((i / finalImagePaths.length) * 60).toInt();
+        final progress = 10 + ((i / finalImagePaths.length) * 40).toInt();
         onProgress?.call(progress, 'Processing image ${i + 1}/${finalImagePaths.length}...');
         
         final imagePath = finalImagePaths[i];
-        final outputPath = '${tempDir.path}/img_${i.toString().padLeft(4, '0')}.jpg';
         
         try {
+          Uint8List? imageBytes;
+          
           if (imagePath.startsWith('http')) {
-            // Download from URL
             final response = await http.get(Uri.parse(imagePath)).timeout(
               const Duration(seconds: 30),
             );
             if (response.statusCode == 200) {
-              await File(outputPath).writeAsBytes(response.bodyBytes);
-              processedImages.add(outputPath);
+              imageBytes = response.bodyBytes;
             }
           } else {
-            // Copy local file
             final sourceFile = File(imagePath);
             if (await sourceFile.exists()) {
-              await sourceFile.copy(outputPath);
-              processedImages.add(outputPath);
+              imageBytes = await sourceFile.readAsBytes();
+            }
+          }
+          
+          if (imageBytes != null) {
+            // Save first image as thumbnail
+            if (processedImages.isEmpty) {
+              await File(thumbnailPath).writeAsBytes(imageBytes);
+            }
+            
+            // Convert to RGBA and resize
+            final rgbaBytes = await _convertToRGBA(imageBytes);
+            if (rgbaBytes != null) {
+              processedImages.add(rgbaBytes);
             }
           }
         } catch (e) {
@@ -164,33 +187,124 @@ class VideoGeneratorService {
       }
 
       if (processedImages.isEmpty) {
+        if (kDebugMode) debugPrint('No images could be processed');
         _isGenerating = false;
         return null;
       }
 
-      // Create unique filename
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final videoFileName = 'memory_slideshow_$timestamp.slideshow';
-      final thumbnailFileName = 'thumbnail_$timestamp.jpg';
+      onProgress?.call(55, 'Initializing H.264 encoder...');
+
+      // Initialize video encoder using STATIC methods
+      try {
+        // Disable logging for production
+        await FlutterQuickVideoEncoder.setLogLevel(LogLevel.none);
+        
+        await FlutterQuickVideoEncoder.setup(
+          width: _videoWidth,
+          height: _videoHeight,
+          fps: _fps,
+          videoBitrate: _bitRate,
+          profileLevel: ProfileLevel.any,
+          audioChannels: _audioChannels,
+          audioBitrate: _audioBitrate,
+          sampleRate: _sampleRate,
+          filepath: videoPath,
+        );
+      } catch (e) {
+        if (kDebugMode) debugPrint('Encoder setup failed: $e');
+        // Fallback to slideshow
+        return await _generateSlideshowFallback(
+          processedImagePaths: finalImagePaths,
+          style: style,
+          durationSeconds: durationSeconds,
+          backgroundMusic: backgroundMusic,
+          onProgress: onProgress,
+        );
+      }
+
+      onProgress?.call(60, 'Creating professional video...');
+
+      // Calculate frames per image
+      final totalFrames = durationSeconds * _fps;
+      final framesPerImage = totalFrames ~/ processedImages.length;
+      final transitionFrames = (_fps * 0.4).toInt(); // 0.4 second crossfade
       
-      final videoPath = '${videoDir.path}/$videoFileName';
-      final thumbnailPath = '${videoDir.path}/$thumbnailFileName';
-
-      onProgress?.call(75, 'Creating slideshow with ${_getStyleName(style)} style...');
-
-      // Save slideshow metadata (list of image paths)
-      final slideshowData = processedImages.join('\n');
-      await File(videoPath).writeAsString(slideshowData);
-
-      onProgress?.call(90, 'Creating thumbnail...');
-
-      // Create thumbnail from first image
-      if (processedImages.isNotEmpty) {
-        try {
-          await File(processedImages[0]).copy(thumbnailPath);
-        } catch (e) {
-          if (kDebugMode) debugPrint('Error creating thumbnail: $e');
+      int currentFrame = 0;
+      
+      for (int imageIndex = 0; imageIndex < processedImages.length; imageIndex++) {
+        final progress = 60 + ((imageIndex / processedImages.length) * 35).toInt();
+        onProgress?.call(progress, 'Encoding ${imageIndex + 1}/${processedImages.length}...');
+        
+        final imageBytes = processedImages[imageIndex];
+        final nextImageBytes = imageIndex < processedImages.length - 1 
+            ? processedImages[imageIndex + 1] 
+            : null;
+        
+        // Main frames for this image
+        final mainFrames = framesPerImage - (nextImageBytes != null ? transitionFrames : 0);
+        
+        for (int f = 0; f < mainFrames; f++) {
+          try {
+            // Use STATIC method
+            await FlutterQuickVideoEncoder.appendVideoFrame(imageBytes);
+            currentFrame++;
+          } catch (e) {
+            if (kDebugMode) debugPrint('Frame append error: $e');
+          }
         }
+        
+        // Crossfade transition to next image
+        if (nextImageBytes != null) {
+          for (int t = 0; t < transitionFrames; t++) {
+            try {
+              final blendFactor = t / transitionFrames;
+              final transitionFrame = _blendFrames(imageBytes, nextImageBytes, blendFactor);
+              // Use STATIC method
+              await FlutterQuickVideoEncoder.appendVideoFrame(transitionFrame);
+              currentFrame++;
+            } catch (e) {
+              if (kDebugMode) debugPrint('Transition frame error: $e');
+            }
+          }
+        }
+      }
+
+      onProgress?.call(96, 'Finalizing video...');
+
+      // Finish encoding - Use STATIC method
+      try {
+        await FlutterQuickVideoEncoder.finish();
+      } catch (e) {
+        if (kDebugMode) debugPrint('Finish error: $e');
+      }
+      
+      // Verify output
+      final outputFile = File(videoPath);
+      bool isRealVideo = false;
+      
+      if (await outputFile.exists()) {
+        final fileSize = await outputFile.length();
+        if (fileSize > 10000) { // At least 10KB
+          isRealVideo = true;
+          if (kDebugMode) {
+            debugPrint('MP4 Video created successfully!');
+            debugPrint('   Path: $videoPath');
+            debugPrint('   Size: ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB');
+            debugPrint('   Frames: $currentFrame');
+          }
+        }
+      }
+      
+      // Fallback to slideshow if video failed
+      if (!isRealVideo) {
+        if (kDebugMode) debugPrint('Video encoding failed, using slideshow fallback');
+        return await _generateSlideshowFallback(
+          processedImagePaths: finalImagePaths,
+          style: style,
+          durationSeconds: durationSeconds,
+          backgroundMusic: backgroundMusic,
+          onProgress: onProgress,
+        );
       }
 
       onProgress?.call(100, 'Video created successfully!');
@@ -203,21 +317,120 @@ class VideoGeneratorService {
         backgroundMusic: backgroundMusic,
         photoCount: processedImages.length,
         createdAt: DateTime.now(),
-        imagePaths: processedImages,
-        isRealVideo: false, // This is a slideshow
+        imagePaths: finalImagePaths,
+        isRealVideo: true,
       );
 
       _isGenerating = false;
-      
-      if (kDebugMode) {
-        debugPrint('Slideshow generated successfully at: $videoPath');
-        debugPrint('Photo count: ${processedImages.length}');
-      }
-      
       return _lastGeneratedVideo;
 
     } catch (e) {
       if (kDebugMode) debugPrint('Error generating video: $e');
+      _isGenerating = false;
+      return null;
+    }
+  }
+
+  /// Convert image bytes to RGBA format and resize to video dimensions
+  static Future<Uint8List?> _convertToRGBA(Uint8List imageBytes) async {
+    try {
+      final codec = await ui.instantiateImageCodec(
+        imageBytes,
+        targetWidth: _videoWidth,
+        targetHeight: _videoHeight,
+      );
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (byteData == null) return null;
+      
+      return byteData.buffer.asUint8List();
+    } catch (e) {
+      if (kDebugMode) debugPrint('RGBA conversion error: $e');
+      return null;
+    }
+  }
+
+  /// Blend two RGBA frames for crossfade transition
+  static Uint8List _blendFrames(Uint8List frame1, Uint8List frame2, double factor) {
+    if (frame1.length != frame2.length) {
+      return frame1;
+    }
+    
+    final result = Uint8List(frame1.length);
+    final f1 = 1.0 - factor;
+    final f2 = factor;
+    
+    for (int i = 0; i < frame1.length; i++) {
+      result[i] = ((frame1[i] * f1) + (frame2[i] * f2)).clamp(0, 255).toInt();
+    }
+    
+    return result;
+  }
+
+  /// Fallback slideshow generator (if video encoding fails)
+  static Future<GeneratedVideo?> _generateSlideshowFallback({
+    required List<String> processedImagePaths,
+    required VideoStyle style,
+    required int durationSeconds,
+    MusicTrack? backgroundMusic,
+    Function(int progress, String status)? onProgress,
+  }) async {
+    try {
+      onProgress?.call(90, 'Creating slideshow backup...');
+      
+      final directory = await getApplicationDocumentsDirectory();
+      final videoDir = Directory('${directory.path}/generated_videos');
+      if (!await videoDir.exists()) {
+        await videoDir.create(recursive: true);
+      }
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final videoFileName = 'memory_slideshow_$timestamp.slideshow';
+      final thumbnailFileName = 'thumbnail_$timestamp.jpg';
+      
+      final videoPath = '${videoDir.path}/$videoFileName';
+      final thumbnailPath = '${videoDir.path}/$thumbnailFileName';
+
+      // Save slideshow data
+      final slideshowData = processedImagePaths.join('\n');
+      await File(videoPath).writeAsString(slideshowData);
+
+      // Create thumbnail
+      if (processedImagePaths.isNotEmpty) {
+        final firstImagePath = processedImagePaths[0];
+        if (firstImagePath.startsWith('http')) {
+          final response = await http.get(Uri.parse(firstImagePath));
+          if (response.statusCode == 200) {
+            await File(thumbnailPath).writeAsBytes(response.bodyBytes);
+          }
+        } else {
+          final file = File(firstImagePath);
+          if (await file.exists()) {
+            await file.copy(thumbnailPath);
+          }
+        }
+      }
+
+      onProgress?.call(100, 'Slideshow created!');
+
+      _lastGeneratedVideo = GeneratedVideo(
+        filePath: videoPath,
+        thumbnailPath: thumbnailPath,
+        durationSeconds: durationSeconds,
+        style: style,
+        backgroundMusic: backgroundMusic,
+        photoCount: processedImagePaths.length,
+        createdAt: DateTime.now(),
+        imagePaths: processedImagePaths,
+        isRealVideo: false,
+      );
+
+      _isGenerating = false;
+      return _lastGeneratedVideo;
+    } catch (e) {
+      if (kDebugMode) debugPrint('Slideshow fallback error: $e');
       _isGenerating = false;
       return null;
     }
@@ -302,7 +515,7 @@ class VideoGeneratorService {
     }
   }
 
-  /// Save generated slideshow images to Downloads folder
+  /// Save generated video to Downloads folder
   static Future<SaveResult> saveVideoToDownloads(GeneratedVideo video, {
     Function(int progress, String status)? onProgress,
   }) async {
@@ -317,11 +530,54 @@ class VideoGeneratorService {
           success: false,
           message: 'Storage access denied. Check permissions.',
           savedCount: 0,
-          totalCount: video.imagePaths.length,
+          totalCount: 1,
         );
       }
       
       final timestamp = DateTime.now().millisecondsSinceEpoch;
+      
+      // If it's a REAL MP4 video
+      if (video.isRealVideo && video.filePath.endsWith('.mp4')) {
+        onProgress?.call(50, 'Copying video file...');
+        
+        final sourceFile = File(video.filePath);
+        if (!await sourceFile.exists()) {
+          return SaveResult(
+            success: false,
+            message: 'Video file not found',
+            savedCount: 0,
+            totalCount: 1,
+          );
+        }
+        
+        // Create destination folder
+        final destDir = Directory('$basePath/Memories_2025');
+        if (!await destDir.exists()) {
+          await destDir.create(recursive: true);
+        }
+        
+        final destPath = '${destDir.path}/Memory_Video_$timestamp.mp4';
+        await sourceFile.copy(destPath);
+        
+        // Verify
+        final destFile = File(destPath);
+        if (await destFile.exists()) {
+          final fileSize = await destFile.length();
+          final sizeInMB = (fileSize / 1024 / 1024).toStringAsFixed(2);
+          
+          onProgress?.call(100, 'Video saved!');
+          
+          return SaveResult(
+            success: true,
+            savedPath: destPath,
+            message: 'Video saved ($sizeInMB MB)',
+            savedCount: 1,
+            totalCount: 1,
+          );
+        }
+      }
+      
+      // Fallback: Save slideshow images
       final folderName = 'Memories_2025_$timestamp';
       final saveDir = Directory('$basePath/$folderName');
       
@@ -337,12 +593,24 @@ class VideoGeneratorService {
         onProgress?.call(progress, 'Saving photo ${i + 1}/${video.imagePaths.length}...');
         
         try {
-          final sourceFile = File(video.imagePaths[i]);
-          if (await sourceFile.exists()) {
-            final fileName = 'Memory_${i + 1}.jpg';
-            final destPath = '${saveDir.path}/$fileName';
-            await sourceFile.copy(destPath);
-            savedCount++;
+          final sourcePath = video.imagePaths[i];
+          final fileName = 'Memory_${i + 1}.jpg';
+          final destPath = '${saveDir.path}/$fileName';
+          
+          if (sourcePath.startsWith('http')) {
+            final response = await http.get(Uri.parse(sourcePath)).timeout(
+              const Duration(seconds: 20),
+            );
+            if (response.statusCode == 200) {
+              await File(destPath).writeAsBytes(response.bodyBytes);
+              savedCount++;
+            }
+          } else {
+            final sourceFile = File(sourcePath);
+            if (await sourceFile.exists()) {
+              await sourceFile.copy(destPath);
+              savedCount++;
+            }
           }
         } catch (e) {
           if (kDebugMode) debugPrint('Error saving image $i: $e');
@@ -380,7 +648,7 @@ class VideoGeneratorService {
   }
 
   /// Get style display name
-  static String _getStyleName(VideoStyle style) {
+  static String getStyleName(VideoStyle style) {
     switch (style) {
       case VideoStyle.cinematic:
         return 'Cinematic';
