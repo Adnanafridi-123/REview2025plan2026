@@ -418,8 +418,9 @@ class MusicService {
       ),
     ],
 
-    // ========== 🎵 PASHTO SONGS - PREMIUM COLLECTION ==========
+    // ========== 🎵 PASHTO SONGS - WOW PREMIUM COLLECTION (20+ TRACKS) ==========
     'Pashto Songs': [
+      // Classic Pashto Melodies
       const MusicTrack(
         id: 'pashto_1', 
         name: 'Da Zra Sadauna', 
@@ -500,10 +501,132 @@ class MusicService {
         mood: 'Energetic',
         language: 'Pashto',
       ),
+      // NEW WOW PASHTO TRACKS
+      const MusicTrack(
+        id: 'pashto_9', 
+        name: 'Laila Da Pekhawar', 
+        artist: 'Pashto Love', 
+        duration: '3:50', 
+        url: 'https://www.bensound.com/bensound-music/bensound-onceagain.mp3',
+        category: 'Pashto Songs',
+        mood: 'Romantic',
+        language: 'Pashto',
+      ),
+      const MusicTrack(
+        id: 'pashto_10', 
+        name: 'Swat Valley', 
+        artist: 'Nature Sounds', 
+        duration: '4:10', 
+        url: 'https://www.bensound.com/bensound-music/bensound-relaxing.mp3',
+        category: 'Pashto Songs',
+        mood: 'Calm',
+        language: 'Pashto',
+      ),
+      const MusicTrack(
+        id: 'pashto_11', 
+        name: 'Pekhawar Nights', 
+        artist: 'City Vibes', 
+        duration: '3:25', 
+        url: 'https://www.bensound.com/bensound-music/bensound-thelounge.mp3',
+        category: 'Pashto Songs',
+        mood: 'Calm',
+        language: 'Pashto',
+      ),
+      const MusicTrack(
+        id: 'pashto_12', 
+        name: 'Attan Dance Mix', 
+        artist: 'DJ Pashto', 
+        duration: '3:00', 
+        url: 'https://www.bensound.com/bensound-music/bensound-house.mp3',
+        category: 'Pashto Songs',
+        mood: 'Energetic',
+        language: 'Pashto',
+      ),
+      const MusicTrack(
+        id: 'pashto_13', 
+        name: 'Khaista Watan', 
+        artist: 'Patriotic', 
+        duration: '4:00', 
+        url: 'https://www.bensound.com/bensound-music/bensound-inspire.mp3',
+        category: 'Pashto Songs',
+        mood: 'Epic',
+        language: 'Pashto',
+      ),
+      const MusicTrack(
+        id: 'pashto_14', 
+        name: 'Mangay De Rana', 
+        artist: 'Traditional Rabab', 
+        duration: '5:15', 
+        url: 'https://www.bensound.com/bensound-music/bensound-tenderness.mp3',
+        category: 'Pashto Songs',
+        mood: 'Romantic',
+        language: 'Pashto',
+      ),
+      const MusicTrack(
+        id: 'pashto_15', 
+        name: 'Zindabad Pukhtoon', 
+        artist: 'Pride Songs', 
+        duration: '3:45', 
+        url: 'https://www.bensound.com/bensound-music/bensound-powerful.mp3',
+        category: 'Pashto Songs',
+        mood: 'Epic',
+        language: 'Pashto',
+      ),
+      const MusicTrack(
+        id: 'pashto_16', 
+        name: 'Wedding Attan', 
+        artist: 'Shaadi Special', 
+        duration: '4:30', 
+        url: 'https://www.bensound.com/bensound-music/bensound-brazilsamba.mp3',
+        category: 'Pashto Songs',
+        mood: 'Energetic',
+        language: 'Pashto',
+      ),
+      const MusicTrack(
+        id: 'pashto_17', 
+        name: 'Zama Janan', 
+        artist: 'Love Ballad', 
+        duration: '4:20', 
+        url: 'https://www.bensound.com/bensound-music/bensound-love.mp3',
+        category: 'Pashto Songs',
+        mood: 'Romantic',
+        language: 'Pashto',
+      ),
+      const MusicTrack(
+        id: 'pashto_18', 
+        name: 'Kabul De', 
+        artist: 'Afghan Heritage', 
+        duration: '3:55', 
+        url: 'https://www.bensound.com/bensound-music/bensound-nostalgia.mp3',
+        category: 'Pashto Songs',
+        mood: 'Sad',
+        language: 'Pashto',
+      ),
+      const MusicTrack(
+        id: 'pashto_19', 
+        name: 'Sanga Cheray', 
+        artist: 'Traditional', 
+        duration: '3:30', 
+        url: 'https://www.bensound.com/bensound-music/bensound-cute.mp3',
+        category: 'Pashto Songs',
+        mood: 'Happy',
+        language: 'Pashto',
+      ),
+      const MusicTrack(
+        id: 'pashto_20', 
+        name: 'Pukhtana Tappay', 
+        artist: 'Folk Heritage', 
+        duration: '4:45', 
+        url: 'https://www.bensound.com/bensound-music/bensound-betterdays.mp3',
+        category: 'Pashto Songs',
+        mood: 'Romantic',
+        language: 'Pashto',
+      ),
     ],
 
-    // ========== 🇵🇰 URDU SONGS - PREMIUM COLLECTION ==========
+    // ========== 🇵🇰 URDU SONGS - WOW PREMIUM COLLECTION (20+ TRACKS) ==========
     'Urdu Songs': [
+      // Classic Urdu Melodies
       const MusicTrack(
         id: 'urdu_1', 
         name: 'Dil Ki Awaaz', 
@@ -583,6 +706,251 @@ class MusicService {
         category: 'Urdu Songs',
         mood: 'Happy',
         language: 'Urdu',
+      ),
+      // NEW WOW URDU TRACKS - Drama OST Style
+      const MusicTrack(
+        id: 'urdu_9', 
+        name: 'Dil Ke Jazbaat', 
+        artist: 'Drama OST', 
+        duration: '4:25', 
+        url: 'https://www.bensound.com/bensound-music/bensound-ofeliasdream.mp3',
+        category: 'Urdu Songs',
+        mood: 'Sad',
+        language: 'Urdu',
+      ),
+      const MusicTrack(
+        id: 'urdu_10', 
+        name: 'Meri Kahani', 
+        artist: 'Pakistani OST', 
+        duration: '3:45', 
+        url: 'https://www.bensound.com/bensound-music/bensound-pianomoment.mp3',
+        category: 'Urdu Songs',
+        mood: 'Sad',
+        language: 'Urdu',
+      ),
+      const MusicTrack(
+        id: 'urdu_11', 
+        name: 'Ishq Ki Dhun', 
+        artist: 'Romantic OST', 
+        duration: '4:00', 
+        url: 'https://www.bensound.com/bensound-music/bensound-creativeminds.mp3',
+        category: 'Urdu Songs',
+        mood: 'Romantic',
+        language: 'Urdu',
+      ),
+      const MusicTrack(
+        id: 'urdu_12', 
+        name: 'Tera Chehra', 
+        artist: 'Love Ballad', 
+        duration: '3:55', 
+        url: 'https://www.bensound.com/bensound-music/bensound-dreams.mp3',
+        category: 'Urdu Songs',
+        mood: 'Romantic',
+        language: 'Urdu',
+      ),
+      const MusicTrack(
+        id: 'urdu_13', 
+        name: 'Lahore Di Raat', 
+        artist: 'City Vibes', 
+        duration: '3:30', 
+        url: 'https://www.bensound.com/bensound-music/bensound-funkysuspense.mp3',
+        category: 'Urdu Songs',
+        mood: 'Energetic',
+        language: 'Urdu',
+      ),
+      const MusicTrack(
+        id: 'urdu_14', 
+        name: 'Karachi Nights', 
+        artist: 'Modern Vibes', 
+        duration: '3:15', 
+        url: 'https://www.bensound.com/bensound-music/bensound-elevate.mp3',
+        category: 'Urdu Songs',
+        mood: 'Energetic',
+        language: 'Urdu',
+      ),
+      const MusicTrack(
+        id: 'urdu_15', 
+        name: 'Ghazal Collection', 
+        artist: 'Classic Poetry', 
+        duration: '5:00', 
+        url: 'https://www.bensound.com/bensound-music/bensound-slowmotion.mp3',
+        category: 'Urdu Songs',
+        mood: 'Calm',
+        language: 'Urdu',
+      ),
+      const MusicTrack(
+        id: 'urdu_16', 
+        name: 'Maa Ki Dua', 
+        artist: 'Emotional', 
+        duration: '4:10', 
+        url: 'https://www.bensound.com/bensound-music/bensound-birthofahero.mp3',
+        category: 'Urdu Songs',
+        mood: 'Sad',
+        language: 'Urdu',
+      ),
+      const MusicTrack(
+        id: 'urdu_17', 
+        name: 'Pakistan Zindabad', 
+        artist: 'Patriotic', 
+        duration: '3:50', 
+        url: 'https://www.bensound.com/bensound-music/bensound-evolution.mp3',
+        category: 'Urdu Songs',
+        mood: 'Epic',
+        language: 'Urdu',
+      ),
+      const MusicTrack(
+        id: 'urdu_18', 
+        name: 'Teri Yaad Mein', 
+        artist: 'Sad Song', 
+        duration: '4:20', 
+        url: 'https://www.bensound.com/bensound-music/bensound-memories.mp3',
+        category: 'Urdu Songs',
+        mood: 'Sad',
+        language: 'Urdu',
+      ),
+      const MusicTrack(
+        id: 'urdu_19', 
+        name: 'Mehndi Rasam', 
+        artist: 'Wedding Song', 
+        duration: '3:35', 
+        url: 'https://www.bensound.com/bensound-music/bensound-ukulele.mp3',
+        category: 'Urdu Songs',
+        mood: 'Happy',
+        language: 'Urdu',
+      ),
+      const MusicTrack(
+        id: 'urdu_20', 
+        name: 'Chand Raat', 
+        artist: 'Festive', 
+        duration: '3:00', 
+        url: 'https://www.bensound.com/bensound-music/bensound-smile.mp3',
+        category: 'Urdu Songs',
+        mood: 'Happy',
+        language: 'Urdu',
+      ),
+    ],
+
+    // ========== 🎬 BOLLYWOOD & HINDI - WOW COLLECTION (NEW) ==========
+    'Bollywood Hindi': [
+      const MusicTrack(
+        id: 'bollywood_1', 
+        name: 'Romantic Melody', 
+        artist: 'Bollywood Style', 
+        duration: '4:15', 
+        url: 'https://www.bensound.com/bensound-music/bensound-romantic.mp3',
+        category: 'Bollywood Hindi',
+        mood: 'Romantic',
+        language: 'Hindi',
+      ),
+      const MusicTrack(
+        id: 'bollywood_2', 
+        name: 'Dil Se Dil Tak', 
+        artist: 'Hindi Romance', 
+        duration: '3:45', 
+        url: 'https://www.bensound.com/bensound-music/bensound-love.mp3',
+        category: 'Bollywood Hindi',
+        mood: 'Romantic',
+        language: 'Hindi',
+      ),
+      const MusicTrack(
+        id: 'bollywood_3', 
+        name: 'Mumbai Dreams', 
+        artist: 'City Vibes', 
+        duration: '3:30', 
+        url: 'https://www.bensound.com/bensound-music/bensound-india.mp3',
+        category: 'Bollywood Hindi',
+        mood: 'Happy',
+        language: 'Hindi',
+      ),
+      const MusicTrack(
+        id: 'bollywood_4', 
+        name: 'Dard E Dil', 
+        artist: 'Sad Melody', 
+        duration: '4:30', 
+        url: 'https://www.bensound.com/bensound-music/bensound-sadday.mp3',
+        category: 'Bollywood Hindi',
+        mood: 'Sad',
+        language: 'Hindi',
+      ),
+      const MusicTrack(
+        id: 'bollywood_5', 
+        name: 'Dance Party', 
+        artist: 'Bollywood Beat', 
+        duration: '3:15', 
+        url: 'https://www.bensound.com/bensound-music/bensound-dance.mp3',
+        category: 'Bollywood Hindi',
+        mood: 'Energetic',
+        language: 'Hindi',
+      ),
+      const MusicTrack(
+        id: 'bollywood_6', 
+        name: 'Sangeet Night', 
+        artist: 'Wedding Special', 
+        duration: '4:00', 
+        url: 'https://www.bensound.com/bensound-music/bensound-brazilsamba.mp3',
+        category: 'Bollywood Hindi',
+        mood: 'Energetic',
+        language: 'Hindi',
+      ),
+      const MusicTrack(
+        id: 'bollywood_7', 
+        name: 'Retro Classic', 
+        artist: 'Old Bollywood', 
+        duration: '3:50', 
+        url: 'https://www.bensound.com/bensound-music/bensound-memories.mp3',
+        category: 'Bollywood Hindi',
+        mood: 'Romantic',
+        language: 'Hindi',
+      ),
+      const MusicTrack(
+        id: 'bollywood_8', 
+        name: 'Pyaar Ka Jadoo', 
+        artist: 'Love Magic', 
+        duration: '4:10', 
+        url: 'https://www.bensound.com/bensound-music/bensound-anewbeginning.mp3',
+        category: 'Bollywood Hindi',
+        mood: 'Romantic',
+        language: 'Hindi',
+      ),
+      const MusicTrack(
+        id: 'bollywood_9', 
+        name: 'Sufi Soul', 
+        artist: 'Spiritual', 
+        duration: '5:00', 
+        url: 'https://www.bensound.com/bensound-music/bensound-slowmotion.mp3',
+        category: 'Bollywood Hindi',
+        mood: 'Calm',
+        language: 'Hindi',
+      ),
+      const MusicTrack(
+        id: 'bollywood_10', 
+        name: 'Shaadi Special', 
+        artist: 'Wedding Hits', 
+        duration: '3:40', 
+        url: 'https://www.bensound.com/bensound-music/bensound-popdance.mp3',
+        category: 'Bollywood Hindi',
+        mood: 'Energetic',
+        language: 'Hindi',
+      ),
+      const MusicTrack(
+        id: 'bollywood_11', 
+        name: 'Ghazal Night', 
+        artist: 'Classic Poetry', 
+        duration: '4:45', 
+        url: 'https://www.bensound.com/bensound-music/bensound-tenderness.mp3',
+        category: 'Bollywood Hindi',
+        mood: 'Calm',
+        language: 'Hindi',
+      ),
+      const MusicTrack(
+        id: 'bollywood_12', 
+        name: 'Item Number', 
+        artist: 'Dance Beat', 
+        duration: '3:20', 
+        url: 'https://www.bensound.com/bensound-music/bensound-house.mp3',
+        category: 'Bollywood Hindi',
+        mood: 'Energetic',
+        language: 'Hindi',
       ),
     ],
 
@@ -1281,5 +1649,32 @@ class MusicService {
   /// Get Wedding tracks
   static List<MusicTrack> get weddingTracks {
     return musicLibrary['Shaadi & Celebration'] ?? [];
+  }
+
+  /// Get Bollywood/Hindi tracks
+  static List<MusicTrack> get bollywoodTracks {
+    return musicLibrary['Bollywood Hindi'] ?? [];
+  }
+
+  /// Get total track count by language
+  static Map<String, int> get trackCountByLanguage {
+    final Map<String, int> counts = {};
+    for (var tracks in musicLibrary.values) {
+      for (var track in tracks) {
+        counts[track.language] = (counts[track.language] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  /// Get featured/popular tracks (first from each category)
+  static List<MusicTrack> get featuredTracks {
+    final List<MusicTrack> featured = [];
+    for (var tracks in musicLibrary.values) {
+      if (tracks.isNotEmpty) {
+        featured.add(tracks.first);
+      }
+    }
+    return featured;
   }
 }
