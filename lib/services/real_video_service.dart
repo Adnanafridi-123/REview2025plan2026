@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:hive/hive.dart';
+import 'package:flutter_quick_video_encoder/flutter_quick_video_encoder.dart';
 import '../services/music_service.dart';
 
 /// Video style effects
@@ -36,7 +38,7 @@ class GeneratedVideo {
     required this.createdAt,
     required this.imagePaths,
     this.isRealVideo = true,
-    this.outputType = 'slideshow',
+    this.outputType = 'mp4',
   });
 }
 
@@ -57,14 +59,13 @@ class SaveResult {
   });
 }
 
-/// ULTRA-SAFE VIDEO SERVICE - NO CRASH GUARANTEED!
+/// REAL MP4 VIDEO SERVICE - Uses Native Hardware Encoder
 /// 
-/// Key Design:
-/// 1. NO image decoding/encoding (causes crash)
-/// 2. NO GIF creation (causes crash)
-/// 3. Simply COPY original photos to organized folder
-/// 4. Process ONE file at a time with delays
-/// 5. Limit to 15 images max
+/// Key Features:
+/// 1. Native h264 encoder (MediaCodec on Android)
+/// 2. No FFmpeg - lightweight and fast
+/// 3. Memory efficient - processes one frame at a time
+/// 4. Real MP4 output - plays in gallery, shareable
 class RealVideoService {
   static GeneratedVideo? _lastGeneratedVideo;
   static bool _isGenerating = false;
@@ -72,10 +73,14 @@ class RealVideoService {
   static GeneratedVideo? get lastGeneratedVideo => _lastGeneratedVideo;
   static bool get isGenerating => _isGenerating;
   
-  // SAFE LIMITS - prevent memory issues
+  // Video settings - optimized for mobile
+  static const int _videoWidth = 720;
+  static const int _videoHeight = 1280;
+  static const int _fps = 1; // 1 frame per second for slideshow
+  static const int _videoBitrate = 2000000; // 2 Mbps
   static const int _maxImages = 15;
 
-  /// Generate Video - ULTRA SAFE (no image processing!)
+  /// Generate REAL MP4 Video using native encoder
   static Future<GeneratedVideo?> generateVideo({
     required List<String> imagePaths,
     required VideoStyle style,
@@ -94,7 +99,7 @@ class RealVideoService {
       onProgress?.call(5, 'Video shuru ho raha hai...');
       await Future.delayed(const Duration(milliseconds: 100));
       
-      // Limit images to prevent any issues
+      // Limit images
       List<String> finalPaths = imagePaths;
       if (finalPaths.length > _maxImages) {
         finalPaths = finalPaths.sublist(0, _maxImages);
@@ -106,115 +111,129 @@ class RealVideoService {
         return null;
       }
 
-      onProgress?.call(10, 'Folder create ho raha hai...');
+      onProgress?.call(10, 'Video file setup ho raha hai...');
 
       // Get output directory
       final directory = await getApplicationDocumentsDirectory();
-      final videoDir = Directory('${directory.path}/memories');
+      final videoDir = Directory('${directory.path}/videos');
       if (!await videoDir.exists()) {
         await videoDir.create(recursive: true);
       }
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final styleName = getStyleName(style).toLowerCase();
-      final outputPath = '${videoDir.path}/memory_${styleName}_$timestamp';
+      final outputPath = '${videoDir.path}/memory_${styleName}_$timestamp.mp4';
       final thumbnailPath = '${videoDir.path}/thumb_$timestamp.jpg';
 
-      // Create output folder
-      final outputDir = Directory(outputPath);
-      await outputDir.create(recursive: true);
+      onProgress?.call(15, 'Encoder setup ho raha hai...');
 
-      onProgress?.call(15, 'Photos organize ho rahi hain...');
-      await Future.delayed(const Duration(milliseconds: 100));
+      // Calculate frames needed
+      // Each image shows for (durationSeconds / imageCount) seconds
+      final secondsPerImage = (durationSeconds / finalPaths.length).ceil();
+      final framesPerImage = secondsPerImage * _fps;
+      // Total frames: finalPaths.length * framesPerImage
 
-      // SAFE: Just copy files ONE BY ONE (no processing!)
-      List<String> savedPaths = [];
-      String? firstImagePath;
+      // Setup video encoder
+      try {
+        await FlutterQuickVideoEncoder.setup(
+          width: _videoWidth,
+          height: _videoHeight,
+          fps: _fps,
+          videoBitrate: _videoBitrate,
+          profileLevel: ProfileLevel.any,
+          audioChannels: 0, // No audio for now (simpler)
+          audioBitrate: 0,
+          sampleRate: 0,
+          filepath: outputPath,
+        );
+      } catch (e) {
+        if (kDebugMode) debugPrint('Encoder setup failed: $e');
+        _isGenerating = false;
+        onProgress?.call(0, 'Encoder setup fail: $e');
+        return null;
+      }
+
+      onProgress?.call(20, 'Photos process ho rahi hain...');
+
+      // Process each image and add frames
+      bool firstImageSaved = false;
       
       for (int i = 0; i < finalPaths.length; i++) {
-        final progress = 15 + ((i / finalPaths.length) * 75).toInt();
-        onProgress?.call(progress, 'Photo ${i + 1}/${finalPaths.length} copy ho rahi hai...');
+        final progress = 20 + ((i / finalPaths.length) * 70).toInt();
+        onProgress?.call(progress, 'Photo ${i + 1}/${finalPaths.length} encode ho rahi hai...');
         
         try {
-          final srcPath = finalPaths[i];
-          final srcFile = File(srcPath);
+          // Load and convert image to RGBA
+          final rgbaData = await _loadImageAsRGBA(finalPaths[i], style);
           
-          if (await srcFile.exists()) {
-            // Get extension from original file
-            String ext = '.jpg';
-            if (srcPath.toLowerCase().endsWith('.png')) ext = '.png';
-            else if (srcPath.toLowerCase().endsWith('.jpeg')) ext = '.jpeg';
-            else if (srcPath.toLowerCase().endsWith('.webp')) ext = '.webp';
+          if (rgbaData != null) {
+            // Save first image as thumbnail
+            if (!firstImageSaved) {
+              await _saveThumbnail(finalPaths[i], thumbnailPath);
+              firstImageSaved = true;
+            }
             
-            final destPath = '$outputPath/photo_${(i + 1).toString().padLeft(2, '0')}$ext';
-            
-            // SAFE: Simple file copy (no processing!)
-            await srcFile.copy(destPath);
-            savedPaths.add(destPath);
-            
-            // Save first as thumbnail
-            if (i == 0) {
-              firstImagePath = destPath;
-              try {
-                await srcFile.copy(thumbnailPath);
-              } catch (e) {
-                // Ignore thumbnail error
+            // Add multiple frames for this image (to create duration)
+            for (int f = 0; f < framesPerImage; f++) {
+              await FlutterQuickVideoEncoder.appendVideoFrame(rgbaData);
+              
+              // Small delay to prevent overwhelming
+              if (f % 5 == 0) {
+                await Future.delayed(const Duration(milliseconds: 10));
               }
             }
           }
         } catch (e) {
-          if (kDebugMode) debugPrint('Copy error for image $i: $e');
+          if (kDebugMode) debugPrint('Frame $i error: $e');
           // Continue with next image
         }
         
-        // IMPORTANT: Give system time to breathe (prevents ANR/crash)
+        // Give UI time to update
         await Future.delayed(const Duration(milliseconds: 50));
       }
 
-      if (savedPaths.isEmpty) {
+      onProgress?.call(92, 'Video finalize ho raha hai...');
+
+      // Finish encoding
+      try {
+        await FlutterQuickVideoEncoder.finish();
+      } catch (e) {
+        if (kDebugMode) debugPrint('Finish error: $e');
+      }
+
+      // Verify output file exists
+      final outputFile = File(outputPath);
+      if (!await outputFile.exists()) {
         _isGenerating = false;
-        onProgress?.call(0, 'Koi photo copy nahi ho saki');
+        onProgress?.call(0, 'Video create nahi ho saki');
         return null;
       }
 
-      onProgress?.call(95, 'Finalize ho raha hai...');
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      // Create metadata file
-      try {
-        final metadataFile = File('$outputPath/info.txt');
-        await metadataFile.writeAsString('''
-Reflect & Plan 2026 - Video Memories
-=====================================
-Style: ${getStyleName(style)}
-Photos: ${savedPaths.length}
-Duration: ${durationSeconds}s
-Created: ${DateTime.now().toString()}
-Music: ${backgroundMusic?.name ?? 'None'}
-
-Ye folder aapki memories hai!
-Isko gallery app se dekh sakte ho.
-''');
-      } catch (e) {
-        // Ignore metadata error
+      final fileSize = await outputFile.length();
+      if (fileSize < 1000) {
+        _isGenerating = false;
+        onProgress?.call(0, 'Video file bahut chhoti hai');
+        return null;
       }
+
+      onProgress?.call(98, 'Almost done...');
 
       _lastGeneratedVideo = GeneratedVideo(
         filePath: outputPath,
-        thumbnailPath: firstImagePath ?? thumbnailPath,
+        thumbnailPath: thumbnailPath,
         durationSeconds: durationSeconds,
         style: style,
         backgroundMusic: backgroundMusic,
-        photoCount: savedPaths.length,
+        photoCount: finalPaths.length,
         createdAt: DateTime.now(),
-        imagePaths: savedPaths,
+        imagePaths: finalPaths,
         isRealVideo: true,
-        outputType: 'photo_collection',
+        outputType: 'mp4',
       );
 
       await _incrementVideosCreated();
       
-      onProgress?.call(100, 'Video tayar hai! ${savedPaths.length} photos');
+      onProgress?.call(100, 'Video tayar hai! 🎬');
       
       _isGenerating = false;
       return _lastGeneratedVideo;
@@ -227,52 +246,145 @@ Isko gallery app se dekh sakte ho.
     }
   }
 
-  /// Save video/images to Downloads folder
+  /// Load image and convert to RGBA format for video encoder
+  static Future<Uint8List?> _loadImageAsRGBA(String path, VideoStyle style) async {
+    try {
+      Uint8List? imageBytes;
+      
+      // Load image bytes
+      if (path.startsWith('http')) {
+        // Skip network images for now - too slow
+        return null;
+      } else {
+        final file = File(path);
+        if (await file.exists()) {
+          imageBytes = await file.readAsBytes();
+        }
+      }
+      
+      if (imageBytes == null) return null;
+
+      // Decode image using Flutter's built-in decoder
+      final codec = await ui.instantiateImageCodec(
+        imageBytes,
+        targetWidth: _videoWidth,
+        targetHeight: _videoHeight,
+      );
+      final frameInfo = await codec.getNextFrame();
+      final image = frameInfo.image;
+
+      // Convert to RGBA bytes
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      
+      if (byteData == null) return null;
+      
+      Uint8List rgbaData = byteData.buffer.asUint8List();
+      
+      // Apply style color filter (simple tint)
+      rgbaData = _applyStyleFilter(rgbaData, style);
+      
+      return rgbaData;
+      
+    } catch (e) {
+      if (kDebugMode) debugPrint('Load image error: $e');
+      return null;
+    }
+  }
+
+  /// Apply simple style color filter
+  static Uint8List _applyStyleFilter(Uint8List rgba, VideoStyle style) {
+    // For performance, only apply simple color adjustments
+    final filtered = Uint8List.fromList(rgba);
+    
+    int rAdjust = 0, gAdjust = 0, bAdjust = 0;
+    
+    switch (style) {
+      case VideoStyle.romantic:
+        rAdjust = 15; gAdjust = 5; bAdjust = 10;
+        break;
+      case VideoStyle.vintage:
+        rAdjust = 20; gAdjust = 15; bAdjust = -10;
+        break;
+      case VideoStyle.neon:
+        rAdjust = 10; gAdjust = 0; bAdjust = 20;
+        break;
+      case VideoStyle.nature:
+        rAdjust = -5; gAdjust = 15; bAdjust = 0;
+        break;
+      case VideoStyle.wedding:
+        rAdjust = 10; gAdjust = 10; bAdjust = 15;
+        break;
+      case VideoStyle.islamic:
+        rAdjust = -5; gAdjust = 20; bAdjust = 10;
+        break;
+      case VideoStyle.family:
+        rAdjust = 15; gAdjust = 10; bAdjust = 0;
+        break;
+      case VideoStyle.birthday:
+        rAdjust = 20; gAdjust = 5; bAdjust = 15;
+        break;
+      case VideoStyle.dosti:
+        rAdjust = 0; gAdjust = 15; bAdjust = 20;
+        break;
+      default:
+        // No filter for cinematic, epic, minimal, etc.
+        return filtered;
+    }
+    
+    // Apply adjustments (RGBA format: R, G, B, A, R, G, B, A, ...)
+    for (int i = 0; i < filtered.length; i += 4) {
+      filtered[i] = (filtered[i] + rAdjust).clamp(0, 255);     // R
+      filtered[i + 1] = (filtered[i + 1] + gAdjust).clamp(0, 255); // G
+      filtered[i + 2] = (filtered[i + 2] + bAdjust).clamp(0, 255); // B
+      // Alpha stays same
+    }
+    
+    return filtered;
+  }
+
+  /// Save thumbnail from first image
+  static Future<void> _saveThumbnail(String sourcePath, String destPath) async {
+    try {
+      final sourceFile = File(sourcePath);
+      if (await sourceFile.exists()) {
+        await sourceFile.copy(destPath);
+      }
+    } catch (e) {
+      // Ignore thumbnail errors
+    }
+  }
+
+  /// Save video to Downloads folder
   static Future<SaveResult> saveVideoToGallery(GeneratedVideo video, {
     Function(int progress, String status)? onProgress,
   }) async {
     try {
       onProgress?.call(5, 'Permission check ho raha hai...');
       
-      // Request all necessary permissions
-      final permissions = await [
+      // Request permissions
+      await [
         Permission.photos,
         Permission.storage,
         Permission.manageExternalStorage,
       ].request();
 
-      // Check if we have at least storage permission
-      bool hasPermission = permissions[Permission.storage]?.isGranted == true ||
-                          permissions[Permission.photos]?.isGranted == true ||
-                          permissions[Permission.manageExternalStorage]?.isGranted == true;
+      onProgress?.call(15, 'Save location dhoond raha hai...');
 
-      if (!hasPermission) {
-        // Try to proceed anyway - some devices grant without explicit check
-        if (kDebugMode) debugPrint('Permission may not be granted, trying anyway...');
-      }
-
-      onProgress?.call(10, 'Save location dhoond raha hai...');
-
-      // Try multiple methods to get external storage
+      // Get external storage path
       String? basePath;
       
-      // Method 1: External storage directory
       try {
         final extDir = await getExternalStorageDirectory();
         if (extDir != null) {
-          // Navigate up to get root external storage
           basePath = extDir.parent.parent.parent.parent.path;
         }
       } catch (e) {
-        if (kDebugMode) debugPrint('Method 1 failed: $e');
+        if (kDebugMode) debugPrint('External storage error: $e');
       }
 
-      // Method 2: Try common Android paths
+      // Fallback paths
       if (basePath == null || !await Directory(basePath).exists()) {
-        for (final testPath in [
-          '/storage/emulated/0',
-          '/sdcard',
-        ]) {
+        for (final testPath in ['/storage/emulated/0', '/sdcard']) {
           if (await Directory(testPath).exists()) {
             basePath = testPath;
             break;
@@ -283,127 +395,81 @@ Isko gallery app se dekh sakte ho.
       if (basePath == null) {
         return SaveResult(
           success: false, 
-          message: 'Storage location nahi mili. Settings mein storage permission check karein.',
+          message: 'Storage location nahi mili',
         );
       }
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final styleName = getStyleName(video.style);
       
-      // Try different save locations in order of preference
-      final folderOptions = ['Download', 'Pictures', 'DCIM', 'Documents'];
-      
-      for (final folder in folderOptions) {
+      // Try different folders
+      for (final folder in ['Download', 'Movies', 'DCIM', 'Pictures']) {
         try {
           final parentDir = Directory('$basePath/$folder');
-          
-          if (!await parentDir.exists()) {
-            continue;
-          }
+          if (!await parentDir.exists()) continue;
 
-          final saveDir = Directory('$basePath/$folder/Memories_${styleName}_$timestamp');
-          await saveDir.create(recursive: true);
+          final fileName = 'Memories_${styleName}_$timestamp.mp4';
+          final destPath = '$basePath/$folder/$fileName';
 
-          onProgress?.call(20, '$folder folder mein save ho raha hai...');
+          onProgress?.call(40, '$folder mein save ho raha hai...');
 
-          int saved = 0;
-          final total = video.imagePaths.length;
-          
-          for (int i = 0; i < total; i++) {
-            final progress = 20 + ((i / total) * 75).toInt();
-            onProgress?.call(progress, 'Photo ${i + 1}/$total save ho rahi hai...');
+          // Copy video file
+          final sourceFile = File(video.filePath);
+          if (await sourceFile.exists()) {
+            await sourceFile.copy(destPath);
             
-            try {
-              final srcFile = File(video.imagePaths[i]);
+            // Verify copy
+            final destFile = File(destPath);
+            if (await destFile.exists()) {
+              final size = await destFile.length();
+              final sizeMB = (size / (1024 * 1024)).toStringAsFixed(1);
               
-              if (await srcFile.exists()) {
-                // Get extension
-                String ext = '.jpg';
-                final srcPath = video.imagePaths[i].toLowerCase();
-                if (srcPath.endsWith('.png')) ext = '.png';
-                else if (srcPath.endsWith('.jpeg')) ext = '.jpeg';
-                else if (srcPath.endsWith('.webp')) ext = '.webp';
-                
-                final destPath = '${saveDir.path}/Memory_${(i + 1).toString().padLeft(2, '0')}$ext';
-                
-                await srcFile.copy(destPath);
-                saved++;
-              }
-            } catch (e) {
-              if (kDebugMode) debugPrint('Save error for photo $i: $e');
-              // Continue with next
+              onProgress?.call(100, 'Video save ho gayi!');
+              
+              return SaveResult(
+                success: true,
+                savedPath: destPath,
+                message: '🎬 Video save ho gayi!\n\n📁 $folder/$fileName\n📊 Size: ${sizeMB}MB\n\nGallery mein dekh sakte ho!',
+                savedCount: 1,
+                totalCount: 1,
+              );
             }
-            
-            // Give system time (prevents ANR)
-            await Future.delayed(const Duration(milliseconds: 30));
-          }
-
-          if (saved > 0) {
-            onProgress?.call(100, 'Save complete! $saved photos');
-            
-            return SaveResult(
-              success: true,
-              savedPath: saveDir.path,
-              message: '$saved photos save ho gayi!\n\nFolder: $folder/Memories_${styleName}_$timestamp\n\nGallery app mein dekh sakte ho!',
-              savedCount: saved,
-              totalCount: total,
-            );
           }
         } catch (e) {
-          if (kDebugMode) debugPrint('Folder $folder failed: $e');
-          // Try next folder
+          if (kDebugMode) debugPrint('Save to $folder failed: $e');
         }
       }
 
-      // If all folders failed, try app documents as last resort
+      // Last resort: save to app documents
       try {
         final appDir = await getApplicationDocumentsDirectory();
-        final saveDir = Directory('${appDir.path}/saved_memories_$timestamp');
-        await saveDir.create(recursive: true);
-
-        onProgress?.call(50, 'App folder mein save ho raha hai...');
-
-        int saved = 0;
-        for (int i = 0; i < video.imagePaths.length; i++) {
-          try {
-            final srcFile = File(video.imagePaths[i]);
-            if (await srcFile.exists()) {
-              String ext = '.jpg';
-              if (video.imagePaths[i].toLowerCase().endsWith('.png')) ext = '.png';
-              
-              await srcFile.copy('${saveDir.path}/Memory_${(i + 1).toString().padLeft(2, '0')}$ext');
-              saved++;
-            }
-          } catch (e) {
-            // Continue
-          }
-          await Future.delayed(const Duration(milliseconds: 30));
-        }
-
-        if (saved > 0) {
-          onProgress?.call(100, 'Save complete!');
-          return SaveResult(
-            success: true,
-            savedPath: saveDir.path,
-            message: '$saved photos app folder mein save ho gayi.\n\nNote: Ye photos sirf app mein visible hongi.',
-            savedCount: saved,
-            totalCount: video.imagePaths.length,
-          );
-        }
+        final fileName = 'Memories_${styleName}_$timestamp.mp4';
+        final destPath = '${appDir.path}/$fileName';
+        
+        final sourceFile = File(video.filePath);
+        await sourceFile.copy(destPath);
+        
+        return SaveResult(
+          success: true,
+          savedPath: destPath,
+          message: '🎬 Video app folder mein save ho gayi.\n\nNote: File manager se access kar sakte ho.',
+          savedCount: 1,
+          totalCount: 1,
+        );
       } catch (e) {
         if (kDebugMode) debugPrint('App folder save failed: $e');
       }
 
       return SaveResult(
         success: false, 
-        message: 'Photos save nahi ho saki.\n\nPlease:\n1. Storage permission enable karein\n2. Phone restart karein\n3. Dubara try karein',
+        message: 'Video save nahi ho saki.\n\nStorage permission check karein.',
       );
 
     } catch (e) {
       if (kDebugMode) debugPrint('Save error: $e');
       return SaveResult(
         success: false, 
-        message: 'Error: $e\n\nPlease storage permission check karein.',
+        message: 'Error: $e',
       );
     }
   }
@@ -469,9 +535,9 @@ Isko gallery app se dekh sakte ho.
   static Future<void> deleteGeneratedVideo() async {
     if (_lastGeneratedVideo != null) {
       try {
-        final dir = Directory(_lastGeneratedVideo!.filePath);
-        if (await dir.exists()) {
-          await dir.delete(recursive: true);
+        final file = File(_lastGeneratedVideo!.filePath);
+        if (await file.exists()) {
+          await file.delete();
         }
         _lastGeneratedVideo = null;
       } catch (e) {
@@ -486,7 +552,7 @@ Isko gallery app se dekh sakte ho.
       final count = box.get('videos_created', defaultValue: 0);
       await box.put('videos_created', count + 1);
     } catch (e) {
-      // Ignore stats error
+      // Ignore
     }
   }
 

@@ -50,9 +50,9 @@ dependencies:
   cupertino_icons: ^1.0.2
   pedometer: ^4.0.1
   
-  # NOTE: image package REMOVED - causes memory crash on mobile devices!
-  # Video creation now uses simple file copy approach (no processing)
-  # This is MUCH safer and prevents app crashes
+  # REAL MP4 Video Creation - Native hardware encoder (no FFmpeg!)
+  # Uses system h264 encoder - memory efficient, no crash
+  flutter_quick_video_encoder: ^1.1.0
 
 dev_dependencies:
   flutter_test:
