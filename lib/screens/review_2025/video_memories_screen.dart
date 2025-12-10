@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../../utils/app_theme.dart';
 import '../../services/music_service.dart';
-import '../../services/video_generator_service.dart';
+import '../../services/lightweight_video_service.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/media_cache_provider.dart';
 import '../../widgets/beautiful_back_button.dart';
@@ -1657,9 +1657,10 @@ class _VideoMemoriesScreenState extends State<VideoMemoriesScreen> with TickerPr
     
     final durationStr = _selectedDuration.replaceAll('s', '');
     final durationSeconds = int.tryParse(durationStr) ?? 30;
-    final videoStyle = VideoGeneratorService.getStyleFromName(_selectedStyle);
+    final videoStyle = LightweightVideoService.getStyleFromName(_selectedStyle);
     
-    final video = await VideoGeneratorService.generateVideo(
+    // Use LIGHTWEIGHT service - NO CRASHES!
+    final video = await LightweightVideoService.generateVideo(
       imagePaths: imagePaths,
       style: videoStyle,
       durationSeconds: durationSeconds,

@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../providers/app_provider.dart';
-import '../../services/video_generator_service.dart';
+import '../../services/lightweight_video_service.dart';
 import '../../services/music_service.dart';
 import '../../widgets/beautiful_back_button.dart';
 
@@ -400,8 +400,8 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
     _pausePreview();
     
     try {
-      // Always use VideoGeneratorService to save
-      final result = await VideoGeneratorService.saveVideoToDownloads(
+      // Use LIGHTWEIGHT service - NO CRASHES!
+      final result = await LightweightVideoService.saveVideoToDownloads(
         widget.video,
         onProgress: (progress, status) {
           if (mounted) {
@@ -414,9 +414,10 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen>
       
       if (result.success) {
         // Show success with appropriate message
-        final isVideo = widget.video.isRealVideo && widget.video.filePath.endsWith('.mp4');
+        final isVideo = widget.video.isRealVideo && 
+            (widget.video.filePath.endsWith('.mp4') || widget.video.filePath.endsWith('.gif'));
         final successMsg = isVideo 
-            ? '🎬 Video saved! ${result.message}'
+            ? '🎬 ${result.message}'
             : '📸 ${result.message}';
         _showSaveResult(true, successMsg);
       } else {
