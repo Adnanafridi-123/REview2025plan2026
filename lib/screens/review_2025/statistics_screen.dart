@@ -2,12 +2,77 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:hive/hive.dart';
 import '../../providers/app_provider.dart';
+import '../../providers/media_cache_provider.dart';
 import '../../utils/app_theme.dart';
 import '../../widgets/review_app_bar.dart';
 
-class StatisticsScreen extends StatelessWidget {
+class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
+
+  @override
+  State<StatisticsScreen> createState() => _StatisticsScreenState();
+}
+
+class _StatisticsScreenState extends State<StatisticsScreen> {
+  bool _isLoading = true;
+  int _totalPhotos = 0;
+  int _totalVideos = 0;
+  int _videosCreated = 0;
+  Map<int, int> _photosByMonth = {};
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadRealData();
+  }
+  
+  Future<void> _loadRealData() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      // Load real photos and videos from device
+      final mediaCache = MediaCacheProvider();
+      await mediaCache.loadPhotos();
+      await mediaCache.loadVideos();
+      
+      _totalPhotos = mediaCache.totalPhotos;
+      _totalVideos = mediaCache.totalVideos;
+      
+      // Calculate photos by month
+      _photosByMonth = {};
+      for (final entry in mediaCache.photosByMonth.entries) {
+        // Extract month number from "January 2025" format
+        final monthNames = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        final monthKey = entry.key;
+        for (int i = 0; i < monthNames.length; i++) {
+          if (monthKey.startsWith(monthNames[i])) {
+            _photosByMonth[i + 1] = entry.value.length;
+            break;
+          }
+        }
+      }
+      
+      // Load videos created count from Hive storage
+      try {
+        final box = await Hive.openBox('video_stats');
+        _videosCreated = box.get('videos_created', defaultValue: 0);
+      } catch (e) {
+        _videosCreated = 0;
+      }
+      
+    } catch (e) {
+      debugPrint('Error loading statistics: $e');
+    }
+    
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,11 +117,30 @@ class StatisticsScreen extends StatelessWidget {
             ),
           ],
         ),
-        body: Consumer<AppProvider>(
+        body: _isLoading 
+            ? const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: AppTheme.statisticsStart),
+                    SizedBox(height: 16),
+                    Text('Loading real data...', style: TextStyle(color: Colors.grey)),
+                  ],
+                ),
+              )
+            : Consumer<AppProvider>(
           builder: (context, provider, child) {
             final moodDistribution = provider.getMoodDistribution();
-            final monthlyActivity = provider.getMonthlyActivity();
-            final mostActiveMonth = provider.getMostActiveMonth();
+            
+            // Calculate most active month from real photo data
+            int mostActiveMonth = 1;
+            int maxPhotos = 0;
+            for (final entry in _photosByMonth.entries) {
+              if (entry.value > maxPhotos) {
+                maxPhotos = entry.value;
+                mostActiveMonth = entry.key;
+              }
+            }
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(20),
@@ -74,7 +158,7 @@ class StatisticsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Your 2025 in numbers',
+                    'Your 2025 in numbers (Real Data)',
                     style: TextStyle(
                       fontSize: 14,
                       color: AppTheme.textPurple.withValues(alpha: 0.7),
@@ -82,7 +166,7 @@ class StatisticsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // Summary cards
+                  // Summary cards with REAL DATA
                   GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -93,17 +177,19 @@ class StatisticsScreen extends StatelessWidget {
                     children: [
                       _AnimatedStatCard(
                         title: 'Photos',
-                        value: provider.totalPhotos.toString(),
+                        value: _totalPhotos.toString(),
                         icon: Icons.photo_library_outlined,
                         gradient: AppTheme.photosCardGradient,
                         delay: 0,
+                        subtitle: _totalPhotos > 0 ? 'From gallery' : 'No photos found',
                       ),
                       _AnimatedStatCard(
                         title: 'Videos',
-                        value: provider.totalVideos.toString(),
+                        value: _totalVideos.toString(),
                         icon: Icons.videocam_outlined,
                         gradient: AppTheme.videosCardGradient,
                         delay: 100,
+                        subtitle: _totalVideos > 0 ? 'From gallery' : 'No videos found',
                       ),
                       _AnimatedStatCard(
                         title: 'Journal',
@@ -111,27 +197,29 @@ class StatisticsScreen extends StatelessWidget {
                         icon: Icons.menu_book_outlined,
                         gradient: AppTheme.journalCardGradient,
                         delay: 200,
+                        subtitle: provider.totalJournals > 0 ? 'Entries written' : 'Start journaling',
                       ),
                       _AnimatedStatCard(
-                        title: 'Achievements',
-                        value: provider.totalAchievements.toString(),
-                        icon: Icons.emoji_events_outlined,
+                        title: 'Videos Created',
+                        value: _videosCreated.toString(),
+                        icon: Icons.movie_creation_outlined,
                         gradient: AppTheme.achievementsCardGradient,
                         delay: 300,
+                        subtitle: _videosCreated > 0 ? 'Memory videos' : 'Create your first!',
                       ),
                     ],
                   ),
 
                   const SizedBox(height: 24),
 
-                  // Mood Distribution
+                  // Mood Distribution (from journal entries - real data)
                   _BeautifulChartCard(
                     title: 'Mood Distribution',
                     subtitle: 'How you felt throughout the year',
                     child: moodDistribution.isEmpty
                         ? _EmptyChartState(
                             icon: Icons.mood,
-                            message: 'No mood data yet',
+                            message: 'No mood data yet\nStart writing journals to track your mood',
                           )
                         : Column(
                             children: [
@@ -186,18 +274,25 @@ class StatisticsScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // Monthly Activity
+                  // Monthly Photo Activity (REAL DATA from device)
                   _BeautifulChartCard(
-                    title: 'Monthly Activity',
-                    subtitle: 'Most active: ${DateFormat('MMMM').format(DateTime(2025, mostActiveMonth))}',
-                    child: SizedBox(
+                    title: 'Monthly Photo Activity',
+                    subtitle: _photosByMonth.isEmpty 
+                        ? 'No photos from 2025 yet'
+                        : 'Most active: ${DateFormat('MMMM').format(DateTime(2025, mostActiveMonth))}',
+                    child: _photosByMonth.isEmpty
+                        ? _EmptyChartState(
+                            icon: Icons.photo_camera,
+                            message: 'No 2025 photos found\nPhotos will appear here automatically',
+                          )
+                        : SizedBox(
                       height: 220,
                       child: BarChart(
                         BarChartData(
                           alignment: BarChartAlignment.spaceAround,
-                          maxY: (monthlyActivity.values.isEmpty
+                          maxY: (_photosByMonth.values.isEmpty
                                   ? 10
-                                  : monthlyActivity.values.reduce((a, b) => a > b ? a : b)) *
+                                  : _photosByMonth.values.reduce((a, b) => a > b ? a : b)) *
                               1.2,
                           barTouchData: BarTouchData(
                             enabled: true,
@@ -210,7 +305,7 @@ class StatisticsScreen extends StatelessWidget {
                                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
                                 ];
                                 return BarTooltipItem(
-                                  '${months[group.x]}\n${rod.toY.toInt()} entries',
+                                  '${months[group.x]}\n${rod.toY.toInt()} photos',
                                   const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -267,9 +362,9 @@ class StatisticsScreen extends StatelessWidget {
                           ),
                           borderData: FlBorderData(show: false),
                           barGroups: List.generate(12, (index) {
-                            final value = monthlyActivity[index + 1] ?? 0;
-                            final isHighest = value ==
-                                monthlyActivity.values.reduce(
+                            final value = _photosByMonth[index + 1] ?? 0;
+                            final isHighest = _photosByMonth.isNotEmpty && value ==
+                                _photosByMonth.values.reduce(
                                     (a, b) => a > b ? a : b);
                             return BarChartGroupData(
                               x: index,
@@ -301,7 +396,7 @@ class StatisticsScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // Highlights section
+                  // Highlights section with REAL DATA
                   _BeautifulChartCard(
                     title: 'Highlights',
                     subtitle: 'Key moments from your year',
@@ -310,27 +405,76 @@ class StatisticsScreen extends StatelessWidget {
                         _HighlightRow(
                           icon: Icons.calendar_today,
                           label: 'Most Active Month',
-                          value: DateFormat('MMMM').format(DateTime(2025, mostActiveMonth)),
+                          value: _photosByMonth.isEmpty 
+                              ? 'No data'
+                              : DateFormat('MMMM').format(DateTime(2025, mostActiveMonth)),
                           color: AppTheme.statisticsStart,
                         ),
                         const SizedBox(height: 12),
                         _HighlightRow(
                           icon: Icons.photo,
                           label: 'Total Memories',
-                          value: '${provider.totalPhotos + provider.totalVideos}',
+                          value: '${_totalPhotos + _totalVideos}',
                           color: AppTheme.photosStart,
                         ),
                         const SizedBox(height: 12),
                         _HighlightRow(
-                          icon: Icons.edit_note,
-                          label: 'Words Written',
-                          value: '~${provider.totalJournals * 150}',
+                          icon: Icons.movie_creation,
+                          label: 'Videos Created',
+                          value: '$_videosCreated',
                           color: AppTheme.journalStart,
+                        ),
+                        const SizedBox(height: 12),
+                        _HighlightRow(
+                          icon: Icons.edit_note,
+                          label: 'Journal Entries',
+                          value: '${provider.totalJournals}',
+                          color: AppTheme.achievementsStart,
                         ),
                       ],
                     ),
                   ),
 
+                  const SizedBox(height: 24),
+                  
+                  // Info card about real data
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.blue[700], size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Real Data Only',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[700],
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Statistics show your actual 2025 photos, videos, and app activity. No dummy data!',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
                   const SizedBox(height: 24),
                 ],
               ),
@@ -375,6 +519,7 @@ class _AnimatedStatCard extends StatefulWidget {
   final IconData icon;
   final LinearGradient gradient;
   final int delay;
+  final String? subtitle;
 
   const _AnimatedStatCard({
     required this.title,
@@ -382,6 +527,7 @@ class _AnimatedStatCard extends StatefulWidget {
     required this.icon,
     required this.gradient,
     this.delay = 0,
+    this.subtitle,
   });
 
   @override
@@ -472,6 +618,14 @@ class _AnimatedStatCardState extends State<_AnimatedStatCard>
                     color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
+                if (widget.subtitle != null)
+                  Text(
+                    widget.subtitle!,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white.withValues(alpha: 0.7),
+                    ),
+                  ),
               ],
             ),
           ],
@@ -600,6 +754,7 @@ class _EmptyChartState extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             message,
+            textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.grey[400],
               fontSize: 14,

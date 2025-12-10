@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image/image.dart' as img;
+import 'package:hive/hive.dart';
 import '../services/music_service.dart';
 
 /// Video style effects - Premium Styles (15 Best Styles)
@@ -320,6 +321,9 @@ class LightweightVideoService {
         isRealVideo: true,
         outputType: 'gif',
       );
+      
+      // Track videos created count for statistics
+      await _incrementVideosCreated();
 
       _isGenerating = false;
       return _lastGeneratedVideo;
@@ -828,5 +832,29 @@ class LightweightVideoService {
     final minutes = seconds ~/ 60;
     final secs = seconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+  
+  /// Increment videos created count for statistics
+  static Future<void> _incrementVideosCreated() async {
+    try {
+      final box = await Hive.openBox('video_stats');
+      final currentCount = box.get('videos_created', defaultValue: 0);
+      await box.put('videos_created', currentCount + 1);
+      if (kDebugMode) {
+        debugPrint('Videos created count: ${currentCount + 1}');
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error tracking video count: $e');
+    }
+  }
+  
+  /// Get videos created count
+  static Future<int> getVideosCreatedCount() async {
+    try {
+      final box = await Hive.openBox('video_stats');
+      return box.get('videos_created', defaultValue: 0);
+    } catch (e) {
+      return 0;
+    }
   }
 }
