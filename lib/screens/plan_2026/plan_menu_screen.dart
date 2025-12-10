@@ -930,60 +930,6 @@ class _PlanMenuScreenState extends State<PlanMenuScreen> with TickerProviderStat
     });
   }
 
-  Future<void> _addCustomReminder(String title, TimeOfDay time) async {
-    final notificationService = NotificationService();
-    
-    final hasPermission = await notificationService.requestPermission();
-    if (!hasPermission) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enable notifications in settings'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      return;
-    }
-    
-    final timeString = '${time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod}:${time.minute.toString().padLeft(2, '0')} ${time.period == DayPeriod.am ? 'AM' : 'PM'}';
-    final id = 2000 + DateTime.now().millisecondsSinceEpoch % 1000;
-    
-    final reminder = Reminder(
-      id: id,
-      title: title,
-      description: 'Custom reminder - $timeString',
-      hour: time.hour,
-      minute: time.minute,
-      isEnabled: true,
-      emoji: '⏰',
-      frequency: 'daily',
-      isPreset: false,
-      createdAt: DateTime.now(),
-    );
-    
-    await _remindersBox.put(id, reminder);
-    
-    await notificationService.scheduleDailyReminder(
-      id: id,
-      title: '⏰ $title',
-      body: 'Time for: $title',
-      time: time,
-      payload: 'custom_reminder_$id',
-    );
-    
-    await notificationService.showNotification(
-      id: 9998,
-      title: '✅ Custom Reminder Set!',
-      body: '$title at $timeString',
-    );
-    
-    setState(() {
-      _reminders = _remindersBox.values.toList();
-    });
-  }
-
   Future<void> _deleteReminder(Reminder reminder) async {
     if (reminder.isPreset) return;
     
@@ -1227,84 +1173,699 @@ class _PlanMenuScreenState extends State<PlanMenuScreen> with TickerProviderStat
 
   void _showAddCustomReminder(BuildContext context, StateSetter setSheetState) {
     final titleController = TextEditingController();
-    TimeOfDay selectedTime = TimeOfDay.now();
+    int selectedHour = TimeOfDay.now().hourOfPeriod;
+    if (selectedHour == 0) selectedHour = 12;
+    int selectedMinute = TimeOfDay.now().minute;
+    bool isAM = TimeOfDay.now().period == DayPeriod.am;
+    String selectedFrequency = 'daily';
+    int? selectedWeekday;
     
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
-            children: [
-              Text('⏰', style: TextStyle(fontSize: 24)),
-              SizedBox(width: 10),
-              Text('Custom Reminder'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  labelText: 'Reminder Title',
-                  hintText: 'e.g., Exercise, Meditation...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Icons.edit),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.access_time, color: Color(0xFF6C63FF)),
-                title: Text(
-                  'Time: ${selectedTime.format(context)}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                trailing: const Icon(Icons.edit, color: Color(0xFF6C63FF)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.grey[300]!),
-                ),
-                onTap: () async {
-                  final time = await showTimePicker(
-                    context: context,
-                    initialTime: selectedTime,
-                  );
-                  if (time != null) {
-                    setDialogState(() => selectedTime = time);
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Daily notification at this time',
-                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          // Convert to TimeOfDay for saving
+          TimeOfDay getSelectedTime() {
+            int hour24 = selectedHour;
+            if (selectedHour == 12) {
+              hour24 = isAM ? 0 : 12;
+            } else {
+              hour24 = isAM ? selectedHour : selectedHour + 12;
+            }
+            return TimeOfDay(hour: hour24, minute: selectedMinute);
+          }
+          
+          String getTimeString() {
+            final h = selectedHour == 0 ? 12 : selectedHour;
+            final m = selectedMinute.toString().padLeft(2, '0');
+            return '$h:$m ${isAM ? "AM" : "PM"}';
+          }
+          
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
-            ElevatedButton(
-              onPressed: () async {
-                if (titleController.text.isNotEmpty) {
-                  Navigator.pop(dialogContext);
-                  await _addCustomReminder(titleController.text, selectedTime);
-                  setSheetState(() {});
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6C63FF),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF6C63FF), Color(0xFF5B52CC)],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.alarm_add, color: Colors.white, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Create Reminder',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2D3436),
+                                ),
+                              ),
+                              Text(
+                                'Set your perfect time',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF636E72),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const Divider(height: 1),
+                  
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title Input
+                        const Text(
+                          'Reminder Name',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2D3436),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: titleController,
+                          decoration: InputDecoration(
+                            hintText: 'e.g., Exercise, Meditation, Study...',
+                            hintStyle: TextStyle(color: Colors.grey[400]),
+                            filled: true,
+                            fillColor: const Color(0xFFF8F9FA),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 2),
+                            ),
+                            prefixIcon: const Icon(Icons.edit_outlined, color: Color(0xFF6C63FF)),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Time Selection - Premium Design
+                        const Text(
+                          'Select Time',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2D3436),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Beautiful Time Picker
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                const Color(0xFF6C63FF).withValues(alpha: 0.08),
+                                const Color(0xFF6C63FF).withValues(alpha: 0.03),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              // Hour : Minute : AM/PM Row
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // Hour Picker
+                                  _buildTimePickerColumn(
+                                    value: selectedHour,
+                                    maxValue: 12,
+                                    minValue: 1,
+                                    onIncrease: () => setDialogState(() {
+                                      selectedHour = selectedHour >= 12 ? 1 : selectedHour + 1;
+                                    }),
+                                    onDecrease: () => setDialogState(() {
+                                      selectedHour = selectedHour <= 1 ? 12 : selectedHour - 1;
+                                    }),
+                                    label: 'Hour',
+                                  ),
+                                  
+                                  // Colon
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 8),
+                                    child: Text(
+                                      ':',
+                                      style: TextStyle(
+                                        fontSize: 40,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF6C63FF),
+                                      ),
+                                    ),
+                                  ),
+                                  
+                                  // Minute Picker
+                                  _buildTimePickerColumn(
+                                    value: selectedMinute,
+                                    maxValue: 59,
+                                    minValue: 0,
+                                    onIncrease: () => setDialogState(() {
+                                      selectedMinute = selectedMinute >= 59 ? 0 : selectedMinute + 1;
+                                    }),
+                                    onDecrease: () => setDialogState(() {
+                                      selectedMinute = selectedMinute <= 0 ? 59 : selectedMinute - 1;
+                                    }),
+                                    label: 'Minute',
+                                    padZero: true,
+                                  ),
+                                  
+                                  const SizedBox(width: 16),
+                                  
+                                  // AM/PM Toggle
+                                  _buildAmPmToggle(
+                                    isAM: isAM,
+                                    onToggle: (val) => setDialogState(() => isAM = val),
+                                  ),
+                                ],
+                              ),
+                              
+                              const SizedBox(height: 12),
+                              
+                              // Time Display
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF6C63FF),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  getTimeString(),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Frequency Selection
+                        const Text(
+                          'Repeat',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2D3436),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildFrequencyOption(
+                                title: 'Daily',
+                                emoji: '📅',
+                                isSelected: selectedFrequency == 'daily',
+                                onTap: () => setDialogState(() {
+                                  selectedFrequency = 'daily';
+                                  selectedWeekday = null;
+                                }),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildFrequencyOption(
+                                title: 'Weekly',
+                                emoji: '🗓️',
+                                isSelected: selectedFrequency == 'weekly',
+                                onTap: () => setDialogState(() {
+                                  selectedFrequency = 'weekly';
+                                  selectedWeekday ??= DateTime.now().weekday;
+                                }),
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        // Weekday selector for weekly
+                        if (selectedFrequency == 'weekly') ...[
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Select Day',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2D3436),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                _buildWeekdayChip('Mon', 1, selectedWeekday, (d) => setDialogState(() => selectedWeekday = d)),
+                                _buildWeekdayChip('Tue', 2, selectedWeekday, (d) => setDialogState(() => selectedWeekday = d)),
+                                _buildWeekdayChip('Wed', 3, selectedWeekday, (d) => setDialogState(() => selectedWeekday = d)),
+                                _buildWeekdayChip('Thu', 4, selectedWeekday, (d) => setDialogState(() => selectedWeekday = d)),
+                                _buildWeekdayChip('Fri', 5, selectedWeekday, (d) => setDialogState(() => selectedWeekday = d)),
+                                _buildWeekdayChip('Sat', 6, selectedWeekday, (d) => setDialogState(() => selectedWeekday = d)),
+                                _buildWeekdayChip('Sun', 7, selectedWeekday, (d) => setDialogState(() => selectedWeekday = d)),
+                              ],
+                            ),
+                          ),
+                        ],
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Save Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              if (titleController.text.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Please enter a reminder name'),
+                                    backgroundColor: Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                                return;
+                              }
+                              Navigator.pop(sheetContext);
+                              await _addCustomReminderWithFrequency(
+                                titleController.text,
+                                getSelectedTime(),
+                                selectedFrequency,
+                                selectedWeekday,
+                              );
+                              setSheetState(() {});
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6C63FF),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 4,
+                              shadowColor: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Save Reminder',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 8),
+                        
+                        // Cancel Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(sheetContext),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+  
+  Widget _buildTimePickerColumn({
+    required int value,
+    required int maxValue,
+    required int minValue,
+    required VoidCallback onIncrease,
+    required VoidCallback onDecrease,
+    required String label,
+    bool padZero = false,
+  }) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: onIncrease,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.keyboard_arrow_up, color: Color(0xFF6C63FF)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: 60,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            padZero ? value.toString().padLeft(2, '0') : value.toString(),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2D3436),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: onDecrease,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF6C63FF)),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[500],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildAmPmToggle({
+    required bool isAM,
+    required Function(bool) onToggle,
+  }) {
+    return Column(
+      children: [
+        const SizedBox(height: 24), // Align with time columns
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              GestureDetector(
+                onTap: () => onToggle(true),
+                child: Container(
+                  width: 60,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: isAM
+                        ? const LinearGradient(
+                            colors: [Color(0xFF6C63FF), Color(0xFF5B52CC)],
+                          )
+                        : null,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                  ),
+                  child: Text(
+                    'AM',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isAM ? Colors.white : Colors.grey[400],
+                    ),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => onToggle(false),
+                child: Container(
+                  width: 60,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: !isAM
+                        ? const LinearGradient(
+                            colors: [Color(0xFF6C63FF), Color(0xFF5B52CC)],
+                          )
+                        : null,
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
+                  ),
+                  child: Text(
+                    'PM',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: !isAM ? Colors.white : Colors.grey[400],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Period',
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[500],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildFrequencyOption({
+    required String title,
+    required String emoji,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: [Color(0xFF6C63FF), Color(0xFF5B52CC)],
+                )
+              : null,
+          color: isSelected ? null : const Color(0xFFF8F9FA),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? Colors.transparent : Colors.grey[300]!,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : const Color(0xFF2D3436),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+  
+  Widget _buildWeekdayChip(String label, int day, int? selectedDay, Function(int) onSelect) {
+    final isSelected = selectedDay == day;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () => onSelect(day),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: isSelected
+                ? const LinearGradient(
+                    colors: [Color(0xFF6C63FF), Color(0xFF5B52CC)],
+                  )
+                : null,
+            color: isSelected ? null : const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? Colors.transparent : Colors.grey[300]!,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : const Color(0xFF2D3436),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Future<void> _addCustomReminderWithFrequency(String title, TimeOfDay time, String frequency, int? weekday) async {
+    final notificationService = NotificationService();
+    
+    final hasPermission = await notificationService.requestPermission();
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enable notifications in settings'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+    
+    final timeString = '${time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod}:${time.minute.toString().padLeft(2, '0')} ${time.period == DayPeriod.am ? 'AM' : 'PM'}';
+    final id = 2000 + DateTime.now().millisecondsSinceEpoch % 1000;
+    
+    final reminder = Reminder(
+      id: id,
+      title: title,
+      description: frequency == 'weekly' && weekday != null 
+          ? 'Weekly reminder - $timeString'
+          : 'Daily reminder - $timeString',
+      hour: time.hour,
+      minute: time.minute,
+      isEnabled: true,
+      emoji: '⏰',
+      frequency: frequency,
+      weekday: frequency == 'weekly' ? weekday : null,
+      isPreset: false,
+      createdAt: DateTime.now(),
+    );
+    
+    await _remindersBox.put(id, reminder);
+    
+    if (frequency == 'weekly' && weekday != null) {
+      await notificationService.scheduleWeeklyReminder(
+        id: id,
+        title: '⏰ $title',
+        body: 'Time for: $title',
+        weekday: weekday,
+        time: time,
+        payload: 'custom_reminder_$id',
+      );
+    } else {
+      await notificationService.scheduleDailyReminder(
+        id: id,
+        title: '⏰ $title',
+        body: 'Time for: $title',
+        time: time,
+        payload: 'custom_reminder_$id',
+      );
+    }
+    
+    final days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    await notificationService.showNotification(
+      id: 9998,
+      title: '✅ Reminder Set!',
+      body: frequency == 'weekly' && weekday != null
+          ? '$title - ${days[weekday]} at $timeString'
+          : '$title - Daily at $timeString',
+    );
+    
+    setState(() {
+      _reminders = _remindersBox.values.toList();
+    });
   }
 
   void _navigateTo(BuildContext context, Widget screen) {

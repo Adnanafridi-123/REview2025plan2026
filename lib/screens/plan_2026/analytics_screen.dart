@@ -527,34 +527,48 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with TickerProviderSt
                   color: Color(0xFF2D3436),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryTeal.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.trending_up, size: 14, color: AppTheme.primaryTeal),
-                    const SizedBox(width: 4),
-                    Text(
-                      '+12%',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryTeal,
-                      ),
+              Consumer<AppProvider>(
+                builder: (context, provider, _) {
+                  final weeklyChange = _calculateWeeklyChange(provider);
+                  final isPositive = weeklyChange >= 0;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: (isPositive ? AppTheme.primaryGreen : Colors.red).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                  ],
-                ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isPositive ? Icons.trending_up : Icons.trending_down,
+                          size: 14,
+                          color: isPositive ? AppTheme.primaryGreen : Colors.red,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${isPositive ? "+" : ""}${weeklyChange.toStringAsFixed(0)}%',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isPositive ? AppTheme.primaryGreen : Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
           const SizedBox(height: 20),
           SizedBox(
             height: 160,
-            child: _AnimatedBarChart(),
+            child: Consumer<AppProvider>(
+              builder: (context, provider, _) {
+                return _AnimatedBarChart(habits: provider.habits);
+              },
+            ),
           ),
         ],
       ),
@@ -1288,6 +1302,35 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with TickerProviderSt
     return insights;
   }
 
+  // Calculate REAL weekly change based on habit completion
+  double _calculateWeeklyChange(AppProvider provider) {
+    if (provider.habits.isEmpty) return 0.0;
+    
+    final now = DateTime.now();
+    final thisWeekStart = now.subtract(Duration(days: now.weekday - 1));
+    final lastWeekStart = thisWeekStart.subtract(const Duration(days: 7));
+    
+    int thisWeekCompletions = 0;
+    int lastWeekCompletions = 0;
+    
+    for (var habit in provider.habits) {
+      for (var date in habit.completionDates) {
+        if (date.isAfter(thisWeekStart.subtract(const Duration(days: 1)))) {
+          thisWeekCompletions++;
+        } else if (date.isAfter(lastWeekStart.subtract(const Duration(days: 1))) && 
+                   date.isBefore(thisWeekStart)) {
+          lastWeekCompletions++;
+        }
+      }
+    }
+    
+    if (lastWeekCompletions == 0) {
+      return thisWeekCompletions > 0 ? 100.0 : 0.0;
+    }
+    
+    return ((thisWeekCompletions - lastWeekCompletions) / lastWeekCompletions) * 100;
+  }
+
   Widget _buildEmptyContent(String title, String subtitle) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 40),
@@ -1447,8 +1490,12 @@ class _AnimatedStatCardState extends State<_AnimatedStatCard> with SingleTickerP
   }
 }
 
-// Animated bar chart
+// Animated bar chart with REAL data from habits
 class _AnimatedBarChart extends StatefulWidget {
+  final List<dynamic> habits;
+  
+  const _AnimatedBarChart({required this.habits});
+  
   @override
   State<_AnimatedBarChart> createState() => _AnimatedBarChartState();
 }
@@ -1457,7 +1504,35 @@ class _AnimatedBarChartState extends State<_AnimatedBarChart> with SingleTickerP
   late AnimationController _controller;
   
   final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  final values = [0.5, 0.7, 0.45, 0.85, 0.6, 0.3, 0.65];
+  
+  // Calculate REAL values from habit completion data
+  List<double> _calculateWeeklyValues() {
+    if (widget.habits.isEmpty) return List.filled(7, 0.0);
+    
+    final now = DateTime.now();
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    
+    final values = <double>[];
+    for (int i = 0; i < 7; i++) {
+      final dayDate = weekStart.add(Duration(days: i));
+      int completed = 0;
+      int total = widget.habits.length;
+      
+      for (var habit in widget.habits) {
+        final completionDates = habit.completionDates as List<DateTime>;
+        if (completionDates.any((d) => 
+            d.year == dayDate.year && 
+            d.month == dayDate.month && 
+            d.day == dayDate.day)) {
+          completed++;
+        }
+      }
+      
+      values.add(total > 0 ? completed / total : 0.0);
+    }
+    
+    return values;
+  }
 
   @override
   void initState() {
@@ -1476,6 +1551,8 @@ class _AnimatedBarChartState extends State<_AnimatedBarChart> with SingleTickerP
 
   @override
   Widget build(BuildContext context) {
+    final values = _calculateWeeklyValues();
+    
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
