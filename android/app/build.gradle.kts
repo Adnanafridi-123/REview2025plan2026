@@ -1,6 +1,7 @@
 // ✅ CRITICAL: Required imports for signing configuration
 import java.util.Properties
 import java.io.FileInputStream
+import java.io.File
 
 plugins {
     id("com.android.application")
@@ -14,12 +15,23 @@ val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+    println("✅ Loaded key.properties from: ${keystorePropertiesFile.absolutePath}")
+    println("   storeFile: ${keystoreProperties["storeFile"]}")
+    println("   keyAlias: ${keystoreProperties["keyAlias"]}")
+} else {
+    println("❌ key.properties not found at: ${keystorePropertiesFile.absolutePath}")
 }
 
 android {
     namespace = "com.reflectplan.plan"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+
+    // Skip lint for faster builds and avoid memory issues
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
 
     compileOptions {
         // Enable core library desugaring for flutter_local_notifications
@@ -43,20 +55,21 @@ android {
     // ✅ Signing configuration for release builds
     signingConfigs {
         create("release") {
+            val storeFilePath = keystoreProperties["storeFile"] as String?
             keyAlias = keystoreProperties["keyAlias"] as String? ?: ""
             keyPassword = keystoreProperties["keyPassword"] as String? ?: ""
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+            storeFile = storeFilePath?.let { File(it) }
             storePassword = keystoreProperties["storePassword"] as String? ?: ""
+            // Enable V1 and V2 signing
+            enableV1Signing = true
+            enableV2Signing = true
+            println("✅ Release signing config: keyAlias=${keyAlias}, storeFile=${storeFile?.absolutePath}")
         }
     }
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
         }

@@ -28,13 +28,14 @@ class ReminderAdapter extends TypeAdapter<Reminder> {
       emoji: fields[8] as String,
       createdAt: fields[9] as DateTime,
       isPreset: fields[10] as bool,
+      scheduledDate: fields[11] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Reminder obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -56,7 +57,9 @@ class ReminderAdapter extends TypeAdapter<Reminder> {
       ..writeByte(9)
       ..write(obj.createdAt)
       ..writeByte(10)
-      ..write(obj.isPreset);
+      ..write(obj.isPreset)
+      ..writeByte(11)
+      ..write(obj.scheduledDate);
   }
 
   @override

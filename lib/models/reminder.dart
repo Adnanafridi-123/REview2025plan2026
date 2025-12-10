@@ -23,7 +23,7 @@ class Reminder extends HiveObject {
   bool isEnabled;
   
   @HiveField(6)
-  String frequency; // 'daily' or 'weekly'
+  String frequency; // 'once', 'daily' or 'weekly'
   
   @HiveField(7)
   int? weekday; // 1-7 (Monday-Sunday), only for weekly reminders
@@ -36,6 +36,9 @@ class Reminder extends HiveObject {
   
   @HiveField(10)
   bool isPreset; // true for default reminders, false for custom
+  
+  @HiveField(11)
+  DateTime? scheduledDate; // For one-time reminders - specific date
 
   Reminder({
     required this.id,
@@ -49,6 +52,7 @@ class Reminder extends HiveObject {
     this.emoji = '🔔',
     required this.createdAt,
     this.isPreset = false,
+    this.scheduledDate,
   });
   
   String get timeString {
@@ -59,11 +63,28 @@ class Reminder extends HiveObject {
   }
   
   String get scheduleDescription {
+    if (frequency == 'once' && scheduledDate != null) {
+      final months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${scheduledDate!.day} ${months[scheduledDate!.month]} ${scheduledDate!.year} at $timeString';
+    }
     if (frequency == 'weekly' && weekday != null) {
       final days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
       return '${days[weekday!]} $timeString';
     }
     return 'Daily at $timeString';
+  }
+  
+  /// Check if this is a one-time reminder that has passed
+  bool get isExpired {
+    if (frequency != 'once' || scheduledDate == null) return false;
+    final reminderDateTime = DateTime(
+      scheduledDate!.year,
+      scheduledDate!.month,
+      scheduledDate!.day,
+      hour,
+      minute,
+    );
+    return reminderDateTime.isBefore(DateTime.now());
   }
   
   Reminder copyWith({
@@ -78,6 +99,7 @@ class Reminder extends HiveObject {
     String? emoji,
     DateTime? createdAt,
     bool? isPreset,
+    DateTime? scheduledDate,
   }) {
     return Reminder(
       id: id ?? this.id,
@@ -91,6 +113,7 @@ class Reminder extends HiveObject {
       emoji: emoji ?? this.emoji,
       createdAt: createdAt ?? this.createdAt,
       isPreset: isPreset ?? this.isPreset,
+      scheduledDate: scheduledDate ?? this.scheduledDate,
     );
   }
 }

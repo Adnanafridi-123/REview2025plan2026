@@ -1177,8 +1177,9 @@ class _PlanMenuScreenState extends State<PlanMenuScreen> with TickerProviderStat
     if (selectedHour == 0) selectedHour = 12;
     int selectedMinute = TimeOfDay.now().minute;
     bool isAM = TimeOfDay.now().period == DayPeriod.am;
-    String selectedFrequency = 'daily';
+    String selectedFrequency = 'once'; // Default to one-time reminder
     int? selectedWeekday;
+    DateTime selectedDate = DateTime.now(); // For one-time reminders
     
     showModalBottomSheet(
       context: context,
@@ -1421,9 +1422,9 @@ class _PlanMenuScreenState extends State<PlanMenuScreen> with TickerProviderStat
                         
                         const SizedBox(height: 24),
                         
-                        // Frequency Selection
+                        // Frequency Selection - 3 Options: Once, Daily, Weekly
                         const Text(
-                          'Repeat',
+                          'Reminder Type',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -1435,6 +1436,18 @@ class _PlanMenuScreenState extends State<PlanMenuScreen> with TickerProviderStat
                           children: [
                             Expanded(
                               child: _buildFrequencyOption(
+                                title: 'Once',
+                                emoji: '📌',
+                                isSelected: selectedFrequency == 'once',
+                                onTap: () => setDialogState(() {
+                                  selectedFrequency = 'once';
+                                  selectedWeekday = null;
+                                }),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildFrequencyOption(
                                 title: 'Daily',
                                 emoji: '📅',
                                 isSelected: selectedFrequency == 'daily',
@@ -1444,7 +1457,7 @@ class _PlanMenuScreenState extends State<PlanMenuScreen> with TickerProviderStat
                                 }),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: _buildFrequencyOption(
                                 title: 'Weekly',
@@ -1458,6 +1471,100 @@ class _PlanMenuScreenState extends State<PlanMenuScreen> with TickerProviderStat
                             ),
                           ],
                         ),
+                        
+                        // Date picker for one-time reminders
+                        if (selectedFrequency == 'once') ...[
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Select Date',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2D3436),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: const ColorScheme.light(
+                                        primary: Color(0xFF6C63FF),
+                                        onPrimary: Colors.white,
+                                        surface: Colors.white,
+                                        onSurface: Color(0xFF2D3436),
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setDialogState(() => selectedDate = picked);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8F9FA),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.calendar_today,
+                                      color: Color(0xFF6C63FF),
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${selectedDate.day} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][selectedDate.month - 1]} ${selectedDate.year}',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF2D3436),
+                                        ),
+                                      ),
+                                      Text(
+                                        ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][selectedDate.weekday - 1],
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Spacer(),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    color: Colors.grey[400],
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                         
                         // Weekday selector for weekly
                         if (selectedFrequency == 'weekly') ...[
@@ -1510,6 +1617,7 @@ class _PlanMenuScreenState extends State<PlanMenuScreen> with TickerProviderStat
                                 getSelectedTime(),
                                 selectedFrequency,
                                 selectedWeekday,
+                                selectedFrequency == 'once' ? selectedDate : null,
                               );
                               setSheetState(() {});
                             },
@@ -1797,7 +1905,7 @@ class _PlanMenuScreenState extends State<PlanMenuScreen> with TickerProviderStat
     );
   }
   
-  Future<void> _addCustomReminderWithFrequency(String title, TimeOfDay time, String frequency, int? weekday) async {
+  Future<void> _addCustomReminderWithFrequency(String title, TimeOfDay time, String frequency, int? weekday, [DateTime? scheduledDate]) async {
     final notificationService = NotificationService();
     
     final hasPermission = await notificationService.requestPermission();
@@ -1817,50 +1925,79 @@ class _PlanMenuScreenState extends State<PlanMenuScreen> with TickerProviderStat
     final timeString = '${time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod}:${time.minute.toString().padLeft(2, '0')} ${time.period == DayPeriod.am ? 'AM' : 'PM'}';
     final id = 2000 + DateTime.now().millisecondsSinceEpoch % 1000;
     
+    // Generate description based on frequency
+    String description;
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    if (frequency == 'once' && scheduledDate != null) {
+      description = '${scheduledDate.day} ${months[scheduledDate.month - 1]} ${scheduledDate.year} at $timeString';
+    } else if (frequency == 'weekly' && weekday != null) {
+      description = 'Weekly - ${days[weekday]} at $timeString';
+    } else {
+      description = 'Daily at $timeString';
+    }
+    
     final reminder = Reminder(
       id: id,
       title: title,
-      description: frequency == 'weekly' && weekday != null 
-          ? 'Weekly reminder - $timeString'
-          : 'Daily reminder - $timeString',
+      description: description,
       hour: time.hour,
       minute: time.minute,
       isEnabled: true,
-      emoji: '⏰',
+      emoji: frequency == 'once' ? '📌' : (frequency == 'weekly' ? '🗓️' : '📅'),
       frequency: frequency,
       weekday: frequency == 'weekly' ? weekday : null,
+      scheduledDate: frequency == 'once' ? scheduledDate : null,
       isPreset: false,
       createdAt: DateTime.now(),
     );
     
     await _remindersBox.put(id, reminder);
     
-    if (frequency == 'weekly' && weekday != null) {
+    // Schedule notification based on frequency type
+    if (frequency == 'once' && scheduledDate != null) {
+      await notificationService.scheduleOneTimeReminder(
+        id: id,
+        title: '📌 $title',
+        body: 'Your reminder: $title',
+        scheduledDate: scheduledDate,
+        time: time,
+        payload: 'one_time_reminder_$id',
+      );
+    } else if (frequency == 'weekly' && weekday != null) {
       await notificationService.scheduleWeeklyReminder(
         id: id,
-        title: '⏰ $title',
+        title: '🗓️ $title',
         body: 'Time for: $title',
         weekday: weekday,
         time: time,
-        payload: 'custom_reminder_$id',
+        payload: 'weekly_reminder_$id',
       );
     } else {
       await notificationService.scheduleDailyReminder(
         id: id,
-        title: '⏰ $title',
+        title: '📅 $title',
         body: 'Time for: $title',
         time: time,
-        payload: 'custom_reminder_$id',
+        payload: 'daily_reminder_$id',
       );
     }
     
-    final days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    // Show confirmation notification
+    String confirmationBody;
+    if (frequency == 'once' && scheduledDate != null) {
+      confirmationBody = '$title - ${scheduledDate.day} ${months[scheduledDate.month - 1]} at $timeString';
+    } else if (frequency == 'weekly' && weekday != null) {
+      confirmationBody = '$title - ${days[weekday]} at $timeString';
+    } else {
+      confirmationBody = '$title - Daily at $timeString';
+    }
+    
     await notificationService.showNotification(
       id: 9998,
       title: '✅ Reminder Set!',
-      body: frequency == 'weekly' && weekday != null
-          ? '$title - ${days[weekday]} at $timeString'
-          : '$title - Daily at $timeString',
+      body: confirmationBody,
     );
     
     setState(() {

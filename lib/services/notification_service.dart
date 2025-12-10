@@ -97,6 +97,62 @@ class NotificationService {
     );
   }
 
+  /// Schedule a ONE-TIME reminder at specific date and time
+  Future<void> scheduleOneTimeReminder({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledDate,
+    required TimeOfDay time,
+    String? payload,
+  }) async {
+    final scheduledDateTime = tz.TZDateTime(
+      tz.local,
+      scheduledDate.year,
+      scheduledDate.month,
+      scheduledDate.day,
+      time.hour,
+      time.minute,
+    );
+
+    // Don't schedule if time has already passed
+    if (scheduledDateTime.isBefore(tz.TZDateTime.now(tz.local))) {
+      debugPrint('Cannot schedule reminder in the past');
+      return;
+    }
+
+    await _notifications.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledDateTime,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'one_time_reminders',
+          'One-Time Reminders',
+          channelDescription: 'One-time scheduled reminders',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          color: const Color(0xFF00BCD4),
+          enableVibration: true,
+          playSound: true,
+          fullScreenIntent: true, // Show even when screen is off
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      // No matchDateTimeComponents means it fires only once
+      payload: payload,
+    );
+  }
+
   /// Schedule a weekly reminder (e.g., Sunday at 10 AM)
   Future<void> scheduleWeeklyReminder({
     required int id,
