@@ -50,9 +50,11 @@ dependencies:
   cupertino_icons: ^1.0.2
   pedometer: ^4.0.1
   
-  # Image processing - used for lightweight video generation (GIF/slideshow)
-  # NO flutter_quick_video_encoder - it causes crashes!
+  # Image processing
   image: ^4.1.7
+  
+  # Video creation using video_editor_sdk alternative
+  # Using flutter native approach for video creation
 
 dev_dependencies:
   flutter_test:
