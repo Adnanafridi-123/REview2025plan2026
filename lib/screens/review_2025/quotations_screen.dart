@@ -525,9 +525,11 @@ class _QuotationsScreenState extends State<QuotationsScreen> {
         text: '✨ Review 2025 - Reflect & Plan App',
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Share failed. Please try again.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Share failed. Please try again.')),
+        );
+      }
     }
   }
 
