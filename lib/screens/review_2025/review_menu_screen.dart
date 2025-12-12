@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../widgets/beautiful_back_button.dart';
-import 'timeline_screen.dart';
-import 'photo_gallery_screen.dart';
-import 'video_gallery_screen.dart';
-import 'journal_screen.dart';
-import 'screenshots_screen.dart';
-import 'achievements_screen.dart';
-import 'statistics_screen.dart';
-import 'wrapped_screen.dart';
-import 'video_memories_screen.dart';
+import 'auto_memories_screen.dart';
+import 'auto_video_memories_screen.dart';
+import 'manual_video_screen.dart';
+import 'year_wrapped_screen.dart';
 
 class ReviewMenuScreen extends StatelessWidget {
   const ReviewMenuScreen({super.key});
@@ -55,86 +50,58 @@ class ReviewMenuScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     
-                    // 9 Menu Cards - EXACT from video
-                    // 1. Timeline - Blue/Purple gradient
+                    // AUTO-GENERATED MEMORIES SECTION
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFD700).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_awesome, color: Color(0xFFFFD700), size: 16),
+                          SizedBox(width: 6),
+                          Text('AUTO-GENERATED', style: TextStyle(color: Color(0xFFFFD700), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // 1. Auto Memories - Facebook-style automatic memories
                     _ReviewCard(
-                      emoji: '📅',
-                      title: 'Timeline',
-                      subtitle: 'Your year month by month',
-                      gradientColors: const [Color(0xFF598BFF), Color(0xFF8C52FF)],
-                      onTap: () => _navigateTo(context, const TimelineScreen()),
+                      emoji: '🎞️',
+                      title: 'My 2025 Memories',
+                      subtitle: 'Auto-curated from your gallery',
+                      gradientColors: const [Color(0xFF667eea), Color(0xFF764ba2)],
+                      onTap: () => _navigateTo(context, const AutoMemoriesScreen()),
                     ),
                     
-                    // 2. Photos - Pink/Rose gradient
-                    _ReviewCard(
-                      emoji: '📷',
-                      title: 'Photos',
-                      subtitle: 'All your 2025 memories',
-                      gradientColors: const [Color(0xFFFF9966), Color(0xFFFF5E62)],
-                      onTap: () => _navigateTo(context, const PhotoGalleryScreen()),
-                    ),
-                    
-                    // 3. Videos - Teal/Mint gradient
-                    _ReviewCard(
-                      emoji: '🎬',
-                      title: 'Videos',
-                      subtitle: 'Relive your moments',
-                      gradientColors: const [Color(0xFF00C9FF), Color(0xFF92FE9D)],
-                      onTap: () => _navigateTo(context, const VideoGalleryScreen()),
-                    ),
-                    
-                    // 4. Journal - Hot Pink/Magenta gradient
-                    _ReviewCard(
-                      emoji: '📝',
-                      title: 'Journal',
-                      subtitle: 'Your thoughts & moods',
-                      gradientColors: const [Color(0xFFEC008C), Color(0xFFFC6767)],
-                      onTap: () => _navigateTo(context, const JournalScreen()),
-                    ),
-                    
-                    // 5. Screenshots - Orange gradient
-                    _ReviewCard(
-                      emoji: '📱',
-                      title: 'Screenshots',
-                      subtitle: 'Memorable captures',
-                      gradientColors: const [Color(0xFFF2994A), Color(0xFFF2C94C)],
-                      onTap: () => _navigateTo(context, const ScreenshotsScreen()),
-                    ),
-                    
-                    // 6. Achievements - Gold/Yellow gradient
-                    _ReviewCard(
-                      emoji: '🏆',
-                      title: 'Achievements',
-                      subtitle: 'Your 2025 wins',
-                      gradientColors: const [Color(0xFFFDC830), Color(0xFFF37335)],
-                      onTap: () => _navigateTo(context, const AchievementsScreen()),
-                    ),
-                    
-                    // 7. Statistics - Green gradient
-                    _ReviewCard(
-                      emoji: '📊',
-                      title: 'Statistics',
-                      subtitle: 'Your year in numbers',
-                      gradientColors: const [Color(0xFF11998E), Color(0xFF38EF7D)],
-                      onTap: () => _navigateTo(context, const StatisticsScreen()),
-                    ),
-                    
-                    // 8. Generate Wrapped - Purple/Pink gradient
+                    // 2. Year Wrapped - Auto-generated Spotify-style
                     _ReviewCard(
                       emoji: '✨',
-                      title: 'Generate Wrapped',
-                      subtitle: 'Your 2025 Spotify-style recap',
+                      title: '2025 Wrapped',
+                      subtitle: 'Your year in review - auto generated',
                       gradientColors: const [Color(0xFFDA22FF), Color(0xFF9733EE)],
-                      onTap: () => _navigateTo(context, const WrappedScreen()),
+                      onTap: () => _navigateTo(context, const YearWrappedScreen()),
                     ),
                     
-                    // 9. Video Memories - Dark Navy gradient
+                    // 3. Auto Video Memories - HD slideshow with music
                     _ReviewCard(
-                      emoji: '🎥',
-                      title: 'Video Memories',
-                      subtitle: 'Create 2-min video slideshow',
-                      gradientColors: const [Color(0xFF24243E), Color(0xFF302B63)],
-                      onTap: () => _navigateTo(context, const VideoMemoriesScreen()),
+                      emoji: '🎬',
+                      title: 'Auto Video',
+                      subtitle: 'HD video with music from all photos',
+                      gradientColors: const [Color(0xFFFF512F), Color(0xFFDD2476)],
+                      onTap: () => _navigateTo(context, const AutoVideoMemoriesScreen()),
+                    ),
+                    
+                    // 4. Manual Video Creation - Select photos manually
+                    _ReviewCard(
+                      emoji: '✂️',
+                      title: 'Create Video',
+                      subtitle: 'Select photos & create custom video',
+                      gradientColors: const [Color(0xFF11998e), Color(0xFF38ef7d)],
+                      onTap: () => _navigateTo(context, const ManualVideoScreen()),
                     ),
                   ],
                 ),

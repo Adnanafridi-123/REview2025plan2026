@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/storage_service.dart';
 import 'services/media_service.dart';
+import 'services/notification_service.dart';
+import 'services/alarm_service.dart';
+import 'services/home_widget_service.dart';
 import 'providers/app_provider.dart';
 import 'utils/app_theme.dart';
 import 'screens/home_screen.dart';
@@ -14,6 +17,15 @@ void main() async {
   
   // Initialize Media Service (Hive boxes for photos/videos/screenshots)
   await MediaService.init();
+  
+  // Initialize Notification Service for habit reminders
+  await NotificationService().initialize();
+  
+  // Initialize Alarm Service for Plan 2026 reminders
+  await AlarmService().initialize();
+  
+  // Initialize Home Widget Service
+  await HomeWidgetService.initialize();
   
   runApp(const MyApp());
 }

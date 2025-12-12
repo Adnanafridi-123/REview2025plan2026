@@ -4,7 +4,7 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../providers/media_cache_provider.dart';
 import '../../widgets/beautiful_back_button.dart';
-import 'video_memories_screen.dart';
+import 'auto_video_memories_screen.dart';
 
 class PhotoGalleryScreen extends StatefulWidget {
   const PhotoGalleryScreen({super.key});
@@ -91,9 +91,7 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VideoMemoriesScreen(
-          selectedPhotoIds: _cache.selectedPhotoIds.toList(),
-        ),
+        builder: (context) => const AutoVideoMemoriesScreen(),
       ),
     ).then((_) {
       // Clear selection after returning

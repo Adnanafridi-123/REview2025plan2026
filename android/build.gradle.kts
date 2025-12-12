@@ -2,6 +2,10 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // FFmpeg Kit repository
+        maven {
+            url = uri("https://github.com/AgoraIO-Community/ffmpeg-kit-android/raw/main/repository")
+        }
     }
 }
 

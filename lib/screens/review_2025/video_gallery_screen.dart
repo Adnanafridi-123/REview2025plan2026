@@ -5,7 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:video_player/video_player.dart';
 import '../../providers/media_cache_provider.dart';
 import '../../widgets/beautiful_back_button.dart';
-import 'video_memories_screen.dart';
+import 'auto_video_memories_screen.dart';
 
 class VideoGalleryScreen extends StatefulWidget {
   const VideoGalleryScreen({super.key});
@@ -14,18 +14,34 @@ class VideoGalleryScreen extends StatefulWidget {
   State<VideoGalleryScreen> createState() => _VideoGalleryScreenState();
 }
 
-class _VideoGalleryScreenState extends State<VideoGalleryScreen> {
+class _VideoGalleryScreenState extends State<VideoGalleryScreen> with TickerProviderStateMixin {
   final MediaCacheProvider _cache = MediaCacheProvider();
   String _selectedMonth = 'All';
   bool _isLoading = true;
   bool _selectionMode = false;
   bool _hasPermission = false;
   String? _errorMessage;
+  
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
     _requestPermissionAndLoad();
+  }
+  
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
   }
 
   Future<void> _requestPermissionAndLoad() async {
@@ -92,9 +108,7 @@ class _VideoGalleryScreenState extends State<VideoGalleryScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VideoMemoriesScreen(
-          selectedVideoIds: _cache.selectedVideoIds.toList(),
-        ),
+        builder: (context) => const AutoVideoMemoriesScreen(),
       ),
     ).then((_) {
       // Clear selection after returning
@@ -119,129 +133,277 @@ class _VideoGalleryScreenState extends State<VideoGalleryScreen> {
   @override
   Widget build(BuildContext context) {
     final videos = _getFilteredVideos();
+    final totalDuration = videos.fold<int>(0, (sum, v) => sum + v.duration);
     
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF11998E), Color(0xFF38EF7D), Color(0xFF56CCF2)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0f0c29),
+              Color(0xFF302b63),
+              Color(0xFF24243e),
+            ],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              // App Bar
-              _buildAppBar(),
+              // 🔥 Pro App Bar
+              _buildProAppBar(),
               
-              // Month Filter
+              // 📊 Stats Dashboard
+              if (_hasPermission && !_isLoading)
+                _buildStatsDashboard(totalDuration),
+              
+              // 🗓️ Month Filter
               if (_hasPermission && _cache.videoMonths.isNotEmpty)
-                _buildMonthFilter(),
+                _buildProMonthFilter(),
               
               // Content
               Expanded(
                 child: _isLoading
-                    ? const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(color: Colors.white),
-                            SizedBox(height: 16),
-                            Text(
-                              'Loading 2025 videos from gallery...',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                          ],
-                        ),
-                      )
+                    ? _buildLoadingState()
                     : !_hasPermission
                         ? _buildPermissionRequest()
                         : videos.isEmpty
                             ? _buildEmptyState()
                             : RefreshIndicator(
                                 onRefresh: _refreshVideos,
-                                color: const Color(0xFF11998E),
-                                child: _buildVideoGrid(videos),
+                                color: const Color(0xFF667eea),
+                                child: _buildProVideoGrid(videos),
                               ),
               ),
             ],
           ),
         ),
       ),
-      // Create Video FAB
+      // 🎬 Create Video FAB
       floatingActionButton: _selectionMode && _cache.selectedCount > 0
-          ? FloatingActionButton.extended(
-              onPressed: _createVideoFromSelection,
-              backgroundColor: const Color(0xFF11998E),
-              icon: const Icon(Icons.movie_creation, color: Colors.white),
-              label: Text(
-                'Create Video (${_cache.selectedCount})',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ? ScaleTransition(
+              scale: _pulseAnimation,
+              child: FloatingActionButton.extended(
+                onPressed: _createVideoFromSelection,
+                backgroundColor: const Color(0xFF667eea),
+                icon: const Icon(Icons.movie_creation, color: Colors.white),
+                label: Text(
+                  'Create Video (${_cache.selectedCount})',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
               ),
             )
           : null,
     );
   }
+  
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF667eea).withOpacity(0.4),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Loading 2025 Videos',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Scanning your gallery...',
+            style: TextStyle(color: Colors.white.withOpacity(0.6)),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildStatsDashboard(int totalDuration) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.1),
+            Colors.white.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _buildStatItem('🎬', _cache.totalVideos, 'Videos', const Color(0xFF4ECDC4))),
+          _buildDivider(),
+          Expanded(child: _buildStatItem('⏱️', totalDuration ~/ 60, 'Minutes', const Color(0xFFFFE66D))),
+          _buildDivider(),
+          Expanded(child: _buildStatItem('📅', _cache.videoMonths.length - 1, 'Months', const Color(0xFFFF6B6B))),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildStatItem(String emoji, int value, String label, Color color) {
+    return Column(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 24)),
+        const SizedBox(height: 4),
+        Text(
+          value.toString(),
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.white.withOpacity(0.6),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildDivider() {
+    return Container(
+      height: 40,
+      width: 1,
+      color: Colors.white.withOpacity(0.1),
+    );
+  }
 
-  Widget _buildAppBar() {
+  Widget _buildProAppBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
         children: [
-          BeautifulBackButton(
-            isDarkMode: false,
+          GestureDetector(
             onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
+              ),
+              child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _selectionMode 
-                      ? '${_cache.selectedCount} Selected'
-                      : 'Videos 2025',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      _selectionMode 
+                          ? '${_cache.selectedCount} Selected'
+                          : '🎬 Videos 2025',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (!_selectionMode) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          'PRO',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 Text(
-                  '${_cache.totalVideos} videos from your gallery',
+                  'Your cinematic memories',
                   style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.6),
                   ),
                 ),
               ],
             ),
           ),
           // Selection Mode Toggle
-          IconButton(
-            onPressed: _toggleSelectionMode,
-            icon: Icon(
-              _selectionMode ? Icons.close : Icons.checklist,
-              color: Colors.white,
-              size: 26,
-            ),
-            tooltip: _selectionMode ? 'Cancel Selection' : 'Select Videos',
+          _buildActionButton(
+            icon: _selectionMode ? Icons.close : Icons.checklist,
+            color: _selectionMode ? const Color(0xFFFF6B6B) : const Color(0xFF4ECDC4),
+            onTap: _toggleSelectionMode,
           ),
+          const SizedBox(width: 8),
           // Refresh Button
-          IconButton(
-            onPressed: _refreshVideos,
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            tooltip: 'Refresh',
+          _buildActionButton(
+            icon: Icons.refresh,
+            color: const Color(0xFFFFE66D),
+            onTap: _refreshVideos,
           ),
         ],
       ),
     );
   }
+  
+  Widget _buildActionButton({required IconData icon, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
+    );
+  }
 
-  Widget _buildMonthFilter() {
+  Widget _buildProMonthFilter() {
     return Container(
-      height: 44,
+      height: 50,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -255,43 +417,51 @@ class _VideoGalleryScreenState extends State<VideoGalleryScreen> {
           
           return GestureDetector(
             onTap: () => setState(() => _selectedMonth = month),
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: isSelected 
-                    ? Colors.white 
-                    : Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
+                gradient: isSelected 
+                    ? const LinearGradient(colors: [Color(0xFF667eea), Color(0xFF764ba2)])
+                    : null,
+                color: isSelected ? null : Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(25),
                 border: Border.all(
-                  color: isSelected ? Colors.white : Colors.transparent,
-                  width: 2,
+                  color: isSelected ? Colors.transparent : Colors.white.withOpacity(0.2),
                 ),
+                boxShadow: isSelected ? [
+                  BoxShadow(
+                    color: const Color(0xFF667eea).withOpacity(0.4),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ] : null,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    month == 'All' ? 'All' : month.split(' ')[0],
+                    month == 'All' ? '✨ All' : '📅 ${month.split(' ')[0]}',
                     style: TextStyle(
-                      color: isSelected ? const Color(0xFF11998E) : Colors.white,
+                      color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                       fontSize: 13,
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: isSelected 
-                          ? const Color(0xFF11998E).withValues(alpha: 0.2)
-                          : Colors.white.withValues(alpha: 0.3),
+                          ? Colors.white.withOpacity(0.2)
+                          : Colors.white.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '$count',
                       style: TextStyle(
-                        color: isSelected ? const Color(0xFF11998E) : Colors.white,
+                        color: Colors.white.withOpacity(isSelected ? 1.0 : 0.7),
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -314,57 +484,82 @@ class _VideoGalleryScreenState extends State<VideoGalleryScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              width: 120,
+              height: 120,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF667eea).withOpacity(0.3),
+                    const Color(0xFF764ba2).withOpacity(0.3),
+                  ],
+                ),
                 shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF667eea).withOpacity(0.5), width: 2),
               ),
-              child: const Icon(
-                Icons.video_library,
-                size: 64,
-                color: Colors.white,
+              child: const Center(
+                child: Text('🔐', style: TextStyle(fontSize: 50)),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
             const Text(
               'Gallery Access Required',
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
             const SizedBox(height: 12),
             Text(
-              _errorMessage ?? 'We need access to your gallery to show your 2025 videos',
+              _errorMessage ?? 'We need access to your gallery\nto show your 2025 videos',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 15,
-                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: 14,
+                color: Colors.white.withOpacity(0.7),
+                height: 1.5,
               ),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () async {
-                await openAppSettings();
-              },
-              icon: const Icon(Icons.settings),
-              label: const Text('Open Settings'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF11998E),
+            const SizedBox(height: 28),
+            GestureDetector(
+              onTap: () async => await openAppSettings(),
+              child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                  ),
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF667eea).withOpacity(0.4),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.settings, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Open Settings',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextButton(
               onPressed: _requestPermissionAndLoad,
-              child: const Text(
+              child: Text(
                 'Try Again',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: Colors.white.withOpacity(0.7)),
               ),
             ),
           ],
@@ -381,22 +576,27 @@ class _VideoGalleryScreenState extends State<VideoGalleryScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              width: 120,
+              height: 120,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF4ECDC4).withOpacity(0.3),
+                    const Color(0xFF44A08D).withOpacity(0.3),
+                  ],
+                ),
                 shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF4ECDC4).withOpacity(0.5), width: 2),
               ),
-              child: const Icon(
-                Icons.videocam,
-                size: 64,
-                color: Colors.white,
+              child: const Center(
+                child: Text('🎬', style: TextStyle(fontSize: 50)),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
             const Text(
               'No 2025 Videos Yet',
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -404,25 +604,47 @@ class _VideoGalleryScreenState extends State<VideoGalleryScreen> {
             const SizedBox(height: 12),
             Text(
               _selectedMonth == 'All'
-                  ? 'Your 2025 videos will appear here automatically'
+                  ? 'Your 2025 videos will appear\nhere automatically'
                   : 'No videos found for $_selectedMonth',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 15,
-                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: 14,
+                color: Colors.white.withOpacity(0.7),
+                height: 1.5,
               ),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _refreshVideos,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Refresh'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF11998E),
+            const SizedBox(height: 28),
+            GestureDetector(
+              onTap: _refreshVideos,
+              child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4ECDC4), Color(0xFF44A08D)],
+                  ),
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4ECDC4).withOpacity(0.4),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.refresh, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Refresh',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -432,14 +654,14 @@ class _VideoGalleryScreenState extends State<VideoGalleryScreen> {
     );
   }
 
-  Widget _buildVideoGrid(List<AssetEntity> videos) {
+  Widget _buildProVideoGrid(List<AssetEntity> videos) {
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 16 / 9,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 16 / 10,
       ),
       itemCount: videos.length,
       itemBuilder: (context, index) {
@@ -461,150 +683,206 @@ class _VideoGalleryScreenState extends State<VideoGalleryScreen> {
             }
             _toggleVideoSelection(video.id);
           },
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Video Thumbnail
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: FutureBuilder<Uint8List?>(
-                  future: video.thumbnailDataWithSize(const ThumbnailSize(400, 225)),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data != null) {
-                      return Image.memory(
-                        snapshot.data!,
-                        fit: BoxFit.cover,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: isSelected
+                  ? Border.all(color: const Color(0xFF667eea), width: 3)
+                  : Border.all(color: Colors.white.withOpacity(0.1)),
+              boxShadow: [
+                BoxShadow(
+                  color: isSelected 
+                      ? const Color(0xFF667eea).withOpacity(0.3)
+                      : Colors.black.withOpacity(0.2),
+                  blurRadius: isSelected ? 15 : 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Video Thumbnail
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: FutureBuilder<Uint8List?>(
+                    future: video.thumbnailDataWithSize(const ThumbnailSize(400, 250)),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData && snapshot.data != null) {
+                        return Image.memory(
+                          snapshot.data!,
+                          fit: BoxFit.cover,
+                        );
+                      }
+                      return Container(
+                        color: const Color(0xFF1a1a2e),
+                        child: Center(
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF667eea),
+                              ),
+                            ),
+                          ),
+                        ),
                       );
-                    }
-                    return Container(
-                      color: Colors.grey[800],
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white54,
+                    },
+                  ),
+                ),
+                
+                // Gradient Overlay
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.7),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Selection Overlay
+                if (_selectionMode && isSelected)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        color: const Color(0xFF667eea).withOpacity(0.3),
+                      ),
+                    ),
+                  ),
+                
+                // Play Button (center)
+                if (!_selectionMode)
+                  Center(
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF667eea).withOpacity(0.5),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.play_arrow, color: Colors.white, size: 30),
+                    ),
+                  ),
+                
+                // Selection Checkbox
+                if (_selectionMode)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        gradient: isSelected 
+                            ? const LinearGradient(colors: [Color(0xFF667eea), Color(0xFF764ba2)])
+                            : null,
+                        color: isSelected ? null : Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected ? Colors.white : Colors.grey.withOpacity(0.5),
+                          width: 2,
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-              
-              // Dark Overlay
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.6),
+                      child: isSelected
+                          ? const Icon(Icons.check, color: Colors.white, size: 16)
+                          : null,
+                    ),
+                  ),
+                
+                // Bottom Info Bar
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(14),
+                        bottomRight: Radius.circular(14),
+                      ),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.8),
+                        ],
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Date
+                        Row(
+                          children: [
+                            Icon(Icons.calendar_today, size: 10, color: Colors.white.withOpacity(0.7)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${video.createDateTime.day}/${video.createDateTime.month}',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Duration
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF667eea).withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.play_circle_fill, size: 10, color: Colors.white),
+                              const SizedBox(width: 3),
+                              Text(
+                                _formatDuration(duration),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
-              ),
-              
-              // Selection Overlay
-              if (_selectionMode)
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: isSelected 
-                          ? const Color(0xFF11998E).withValues(alpha: 0.4)
-                          : Colors.black.withValues(alpha: 0.2),
-                      border: isSelected
-                          ? Border.all(color: const Color(0xFF11998E), width: 3)
-                          : null,
-                    ),
-                  ),
-                ),
-              
-              // Play Icon (when not in selection mode)
-              if (!_selectionMode)
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.play_arrow,
-                      color: Color(0xFF11998E),
-                      size: 28,
-                    ),
-                  ),
-                ),
-              
-              // Selection Checkbox
-              if (_selectionMode)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: isSelected 
-                          ? const Color(0xFF11998E) 
-                          : Colors.white.withValues(alpha: 0.8),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isSelected ? Colors.white : Colors.grey,
-                        width: 2,
-                      ),
-                    ),
-                    child: isSelected
-                        ? const Icon(Icons.check, color: Colors.white, size: 18)
-                        : null,
-                  ),
-                ),
-              
-              // Duration Badge
-              Positioned(
-                bottom: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    _formatDuration(duration),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              
-              // Date Badge
-              Positioned(
-                bottom: 8,
-                left: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    '${video.createDateTime.day}/${video.createDateTime.month}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

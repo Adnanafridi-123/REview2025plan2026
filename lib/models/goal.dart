@@ -42,6 +42,15 @@ class Goal extends HiveObject {
   
   @HiveField(12)
   DateTime? completedAt;
+  
+  @HiveField(13)
+  List<String> photos; // List of photo paths
+  
+  @HiveField(14)
+  String? reminderTime; // HH:mm format for daily reminder
+  
+  @HiveField(15)
+  bool reminderEnabled;
 
   Goal({
     required this.id,
@@ -57,7 +66,11 @@ class Goal extends HiveObject {
     this.isCompleted = false,
     required this.createdAt,
     this.completedAt,
-  }) : milestones = milestones ?? [];
+    List<String>? photos,
+    this.reminderTime,
+    this.reminderEnabled = false,
+  }) : milestones = milestones ?? [],
+       photos = photos ?? [];
   
   double get progress => targetValue > 0 ? (currentValue / targetValue * 100).clamp(0, 100) : 0;
   
@@ -75,6 +88,9 @@ class Goal extends HiveObject {
     bool? isCompleted,
     DateTime? createdAt,
     DateTime? completedAt,
+    List<String>? photos,
+    String? reminderTime,
+    bool? reminderEnabled,
   }) {
     return Goal(
       id: id ?? this.id,
@@ -85,11 +101,14 @@ class Goal extends HiveObject {
       currentValue: currentValue ?? this.currentValue,
       deadline: deadline ?? this.deadline,
       priority: priority ?? this.priority,
-      milestones: milestones ?? this.milestones,
+      milestones: milestones ?? List.from(this.milestones),
       notes: notes ?? this.notes,
       isCompleted: isCompleted ?? this.isCompleted,
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
+      photos: photos ?? List.from(this.photos),
+      reminderTime: reminderTime ?? this.reminderTime,
+      reminderEnabled: reminderEnabled ?? this.reminderEnabled,
     );
   }
 }
@@ -107,12 +126,20 @@ class Milestone extends HiveObject {
   
   @HiveField(3)
   DateTime? completedAt;
+  
+  @HiveField(4)
+  DateTime? dueDate;
+  
+  @HiveField(5)
+  String? description;
 
   Milestone({
     required this.id,
     required this.title,
     this.isCompleted = false,
     this.completedAt,
+    this.dueDate,
+    this.description,
   });
   
   Milestone copyWith({
@@ -120,12 +147,16 @@ class Milestone extends HiveObject {
     String? title,
     bool? isCompleted,
     DateTime? completedAt,
+    DateTime? dueDate,
+    String? description,
   }) {
     return Milestone(
       id: id ?? this.id,
       title: title ?? this.title,
       isCompleted: isCompleted ?? this.isCompleted,
       completedAt: completedAt ?? this.completedAt,
+      dueDate: dueDate ?? this.dueDate,
+      description: description ?? this.description,
     );
   }
 }

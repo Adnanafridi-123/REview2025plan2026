@@ -44,21 +44,27 @@ class MediaCacheProvider extends ChangeNotifier {
   int get selectedCount => _selectedPhotoIds.length + _selectedVideoIds.length;
   bool get hasSelection => selectedCount > 0;
 
-  /// Load photos from gallery (with caching)
+  /// Load photos from gallery (with caching) - FIXED: No duplicates
   Future<void> loadPhotos({bool forceRefresh = false}) async {
     // Return cached data if available and not forcing refresh
     if (_photosLoaded && !forceRefresh) {
       return;
     }
 
+    // Completely reset cache
+    _photosByMonth = {};
+    _photoMonths = [];
+    _totalPhotos = 0;
+    _photosLoaded = false;
+
     try {
-      // Request permission
       final permission = await PhotoManager.requestPermissionExtend();
       if (!permission.isAuth) {
         debugPrint('Photo permission denied');
         return;
       }
 
+      // Get ONLY the "Recent" or first album to avoid duplicates from multiple albums
       final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
         type: RequestType.image,
         filterOption: FilterOptionGroup(
@@ -72,36 +78,54 @@ class MediaCacheProvider extends ChangeNotifier {
         ),
       );
 
-      Map<String, List<AssetEntity>> photosByMonth = {};
-      int totalCount = 0;
-
-      for (final album in albums) {
-        final int count = await album.assetCountAsync;
-        if (count > 0) {
-          final List<AssetEntity> assets = await album.getAssetListRange(
-            start: 0,
-            end: count,
-          );
-
-          for (final asset in assets) {
-            final date = asset.createDateTime;
-            if (date.year == 2025) {
-              final monthKey = _getMonthKey(date);
-              photosByMonth.putIfAbsent(monthKey, () => []);
-              photosByMonth[monthKey]!.add(asset);
-              totalCount++;
-            }
-          }
-        }
+      if (albums.isEmpty) {
+        _photosLoaded = true;
+        notifyListeners();
+        return;
       }
 
-      // Sort photos within each month
+      // Use only the first album (usually "Recent" or "All Photos") to avoid duplicates
+      final mainAlbum = albums.first;
+      final int count = await mainAlbum.assetCountAsync;
+      
+      if (count == 0) {
+        _photosLoaded = true;
+        notifyListeners();
+        return;
+      }
+
+      final List<AssetEntity> allAssets = await mainAlbum.getAssetListRange(
+        start: 0,
+        end: count,
+      );
+
+      Map<String, List<AssetEntity>> photosByMonth = {};
+      Set<String> addedIds = {};
+      int totalCount = 0;
+
+      for (final asset in allAssets) {
+        // Double-check for duplicates using ID
+        if (addedIds.contains(asset.id)) continue;
+        
+        final date = asset.createDateTime;
+        if (date.year == 2025) {
+          final monthKey = _getMonthKey(date);
+          photosByMonth.putIfAbsent(monthKey, () => []);
+          photosByMonth[monthKey]!.add(asset);
+          addedIds.add(asset.id);
+          totalCount++;
+        }
+      }
+      
+      debugPrint('✓ Loaded $totalCount unique photos from ${mainAlbum.name}');
+
+      // Sort photos within each month (newest first)
       for (final month in photosByMonth.keys) {
         photosByMonth[month]!.sort((a, b) => 
           b.createDateTime.compareTo(a.createDateTime));
       }
 
-      // Sort months
+      // Sort months (newest first)
       final sortedMonths = photosByMonth.keys.toList()
         ..sort((a, b) => _monthOrder(b).compareTo(_monthOrder(a)));
 
@@ -115,14 +139,19 @@ class MediaCacheProvider extends ChangeNotifier {
     }
   }
 
-  /// Load videos from gallery (with caching)
+  /// Load videos from gallery (with caching) - FIXED: No duplicates
   Future<void> loadVideos({bool forceRefresh = false}) async {
     if (_videosLoaded && !forceRefresh) {
       return;
     }
 
+    // Completely reset cache
+    _videosByMonth = {};
+    _videoMonths = [];
+    _totalVideos = 0;
+    _videosLoaded = false;
+
     try {
-      // Request permission
       final permission = await PhotoManager.requestPermissionExtend();
       if (!permission.isAuth) {
         debugPrint('Video permission denied');
@@ -142,28 +171,45 @@ class MediaCacheProvider extends ChangeNotifier {
         ),
       );
 
+      if (albums.isEmpty) {
+        _videosLoaded = true;
+        notifyListeners();
+        return;
+      }
+
+      // Use only the first album to avoid duplicates
+      final mainAlbum = albums.first;
+      final int count = await mainAlbum.assetCountAsync;
+      
+      if (count == 0) {
+        _videosLoaded = true;
+        notifyListeners();
+        return;
+      }
+
+      final List<AssetEntity> allAssets = await mainAlbum.getAssetListRange(
+        start: 0,
+        end: count,
+      );
+
       Map<String, List<AssetEntity>> videosByMonth = {};
+      Set<String> addedIds = {};
       int totalCount = 0;
 
-      for (final album in albums) {
-        final int count = await album.assetCountAsync;
-        if (count > 0) {
-          final List<AssetEntity> assets = await album.getAssetListRange(
-            start: 0,
-            end: count,
-          );
-
-          for (final asset in assets) {
-            final date = asset.createDateTime;
-            if (date.year == 2025) {
-              final monthKey = _getMonthKey(date);
-              videosByMonth.putIfAbsent(monthKey, () => []);
-              videosByMonth[monthKey]!.add(asset);
-              totalCount++;
-            }
-          }
+      for (final asset in allAssets) {
+        if (addedIds.contains(asset.id)) continue;
+        
+        final date = asset.createDateTime;
+        if (date.year == 2025) {
+          final monthKey = _getMonthKey(date);
+          videosByMonth.putIfAbsent(monthKey, () => []);
+          videosByMonth[monthKey]!.add(asset);
+          addedIds.add(asset.id);
+          totalCount++;
         }
       }
+      
+      debugPrint('✓ Loaded $totalCount unique videos from ${mainAlbum.name}');
 
       // Sort videos within each month
       for (final month in videosByMonth.keys) {
@@ -267,21 +313,37 @@ class MediaCacheProvider extends ChangeNotifier {
     return files;
   }
 
-  /// Get all photos as flat list
+  /// Get all photos as flat list (with duplicate removal)
   List<AssetEntity> getAllPhotosFlat() {
     List<AssetEntity> all = [];
+    Set<String> seenIds = {};
+    
     for (final photos in _photosByMonth.values) {
-      all.addAll(photos);
+      for (final photo in photos) {
+        // Only add if not already seen
+        if (!seenIds.contains(photo.id)) {
+          all.add(photo);
+          seenIds.add(photo.id);
+        }
+      }
     }
     all.sort((a, b) => b.createDateTime.compareTo(a.createDateTime));
     return all;
   }
 
-  /// Get all videos as flat list
+  /// Get all videos as flat list (with duplicate removal)
   List<AssetEntity> getAllVideosFlat() {
     List<AssetEntity> all = [];
+    Set<String> seenIds = {};
+    
     for (final videos in _videosByMonth.values) {
-      all.addAll(videos);
+      for (final video in videos) {
+        // Only add if not already seen
+        if (!seenIds.contains(video.id)) {
+          all.add(video);
+          seenIds.add(video.id);
+        }
+      }
     }
     all.sort((a, b) => b.createDateTime.compareTo(a.createDateTime));
     return all;

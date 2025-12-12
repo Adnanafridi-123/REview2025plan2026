@@ -1,23 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
-import '../models/journal_entry.dart';
 import '../models/goal.dart';
 import '../models/habit.dart';
-import '../models/achievement.dart';
-import '../models/screenshot_item.dart';
-import '../models/weekly_review.dart';
 import '../models/badge.dart';
 import '../models/media_item.dart';
 import '../services/storage_service.dart';
 import '../services/media_service.dart';
+import '../services/home_widget_service.dart';
 
 class AppProvider extends ChangeNotifier {
   final _uuid = const Uuid();
-  
-  // Journals
-  List<JournalEntry> _journals = [];
-  List<JournalEntry> get journals => _journals;
-  List<JournalEntry> get journals2025 => _journals.where((j) => j.date.year == 2025).toList();
   
   // Goals
   List<Goal> _goals = [];
@@ -28,19 +20,6 @@ class AppProvider extends ChangeNotifier {
   // Habits
   List<Habit> _habits = [];
   List<Habit> get habits => _habits;
-  
-  // Achievements
-  List<Achievement> _achievements = [];
-  List<Achievement> get achievements => _achievements;
-  List<Achievement> get achievements2025 => _achievements.where((a) => a.date.year == 2025).toList();
-  
-  // Screenshots
-  List<ScreenshotItem> _screenshots = [];
-  List<ScreenshotItem> get screenshots => _screenshots;
-  
-  // Weekly Reviews
-  List<WeeklyReview> _weeklyReviews = [];
-  List<WeeklyReview> get weeklyReviews => _weeklyReviews;
   
   // Badges & Progress
   List<UserBadge> _badges = [];
@@ -62,12 +41,8 @@ class AppProvider extends ChangeNotifier {
   bool get isDarkMode => _isDarkMode;
   
   Future<void> loadData() async {
-    _journals = StorageService.getAllJournals();
     _goals = StorageService.getAllGoals();
     _habits = StorageService.getAllHabits();
-    _achievements = StorageService.getAllAchievements();
-    _screenshots = StorageService.getAllScreenshots();
-    _weeklyReviews = StorageService.getAllWeeklyReviews();
     _badges = StorageService.getAllBadges();
     _progress = StorageService.getUserProgress();
     
@@ -140,39 +115,6 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
   
-  // Journal operations
-  Future<void> addJournal({
-    required String text,
-    required String mood,
-    required DateTime date,
-  }) async {
-    final entry = JournalEntry(
-      id: _uuid.v4(),
-      text: text,
-      mood: mood,
-      date: date,
-      createdAt: DateTime.now(),
-    );
-    await StorageService.addJournal(entry);
-    _journals = StorageService.getAllJournals();
-    _badges = StorageService.getAllBadges();
-    _progress = StorageService.getUserProgress();
-    notifyListeners();
-  }
-  
-  Future<void> updateJournal(JournalEntry entry) async {
-    final updated = entry.copyWith(updatedAt: DateTime.now());
-    await StorageService.updateJournal(updated);
-    _journals = StorageService.getAllJournals();
-    notifyListeners();
-  }
-  
-  Future<void> deleteJournal(String id) async {
-    await StorageService.deleteJournal(id);
-    _journals = StorageService.getAllJournals();
-    notifyListeners();
-  }
-  
   // Goal operations
   Future<void> addGoal({
     required String name,
@@ -181,6 +123,8 @@ class AppProvider extends ChangeNotifier {
     double targetValue = 100,
     required DateTime deadline,
     String priority = 'Medium',
+    String? reminderTime,
+    bool reminderEnabled = false,
   }) async {
     final goal = Goal(
       id: _uuid.v4(),
@@ -191,6 +135,8 @@ class AppProvider extends ChangeNotifier {
       deadline: deadline,
       priority: priority,
       createdAt: DateTime.now(),
+      reminderTime: reminderTime,
+      reminderEnabled: reminderEnabled,
     );
     await StorageService.addGoal(goal);
     _goals = StorageService.getAllGoals();
@@ -205,6 +151,11 @@ class AppProvider extends ChangeNotifier {
     _badges = StorageService.getAllBadges();
     _progress = StorageService.getUserProgress();
     notifyListeners();
+    _updateHomeWidget();
+  }
+  
+  void _updateHomeWidget() {
+    HomeWidgetService.updateGoalWidget(goals: _goals, habits: _habits);
   }
   
   Future<void> updateGoalProgress(String goalId, double newValue) async {
@@ -254,6 +205,49 @@ class AppProvider extends ChangeNotifier {
     await updateGoal(updated);
   }
   
+  Future<void> addMilestoneWithDetails(String goalId, String title, {String? description, DateTime? dueDate}) async {
+    final goal = _goals.firstWhere((g) => g.id == goalId);
+    final milestone = Milestone(
+      id: _uuid.v4(),
+      title: title,
+      description: description,
+      dueDate: dueDate,
+    );
+    final updated = goal.copyWith(
+      milestones: [...goal.milestones, milestone],
+    );
+    await updateGoal(updated);
+  }
+  
+  Future<void> updateMilestone(String goalId, Milestone updatedMilestone) async {
+    final goal = _goals.firstWhere((g) => g.id == goalId);
+    final milestones = goal.milestones.map((m) {
+      if (m.id == updatedMilestone.id) {
+        return updatedMilestone;
+      }
+      return m;
+    }).toList();
+    
+    final updated = goal.copyWith(milestones: milestones);
+    await updateGoal(updated);
+  }
+  
+  Future<void> deleteMilestone(String goalId, String milestoneId) async {
+    final goal = _goals.firstWhere((g) => g.id == goalId);
+    final milestones = goal.milestones.where((m) => m.id != milestoneId).toList();
+    
+    // Recalculate progress
+    final completedCount = milestones.where((m) => m.isCompleted).length;
+    final progress = milestones.isEmpty ? 0.0 : (completedCount / milestones.length * 100);
+    
+    final updated = goal.copyWith(
+      milestones: milestones,
+      currentValue: progress,
+      isCompleted: progress >= 100 && milestones.isNotEmpty,
+    );
+    await updateGoal(updated);
+  }
+  
   Future<void> deleteGoal(String id) async {
     await StorageService.deleteGoal(id);
     _goals = StorageService.getAllGoals();
@@ -265,6 +259,7 @@ class AppProvider extends ChangeNotifier {
     required String name,
     String frequency = 'Daily',
     String? reminderTime,
+    String category = 'Personal',
   }) async {
     final habit = Habit(
       id: _uuid.v4(),
@@ -272,6 +267,7 @@ class AppProvider extends ChangeNotifier {
       frequency: frequency,
       reminderTime: reminderTime,
       createdAt: DateTime.now(),
+      category: category,
     );
     await StorageService.addHabit(habit);
     _habits = StorageService.getAllHabits();
@@ -292,115 +288,27 @@ class AppProvider extends ChangeNotifier {
     _badges = StorageService.getAllBadges();
     _progress = StorageService.getUserProgress();
     notifyListeners();
+    _updateHomeWidget();
+  }
+  
+  Future<void> updateHabit(Habit habit) async {
+    await StorageService.updateHabit(habit);
+    _habits = StorageService.getAllHabits();
+    notifyListeners();
+    _updateHomeWidget();
   }
   
   Future<void> deleteHabit(String id) async {
     await StorageService.deleteHabit(id);
     _habits = StorageService.getAllHabits();
     notifyListeners();
-  }
-  
-  // Achievement operations
-  Future<void> addAchievement({
-    required String title,
-    required String category,
-    required DateTime date,
-    String description = '',
-  }) async {
-    final achievement = Achievement(
-      id: _uuid.v4(),
-      title: title,
-      category: category,
-      date: date,
-      description: description,
-      createdAt: DateTime.now(),
-    );
-    await StorageService.addAchievement(achievement);
-    _achievements = StorageService.getAllAchievements();
-    _badges = StorageService.getAllBadges();
-    _progress = StorageService.getUserProgress();
-    notifyListeners();
-  }
-  
-  Future<void> updateAchievement(Achievement achievement) async {
-    await StorageService.updateAchievement(achievement);
-    _achievements = StorageService.getAllAchievements();
-    notifyListeners();
-  }
-  
-  Future<void> deleteAchievement(String id) async {
-    await StorageService.deleteAchievement(id);
-    _achievements = StorageService.getAllAchievements();
-    notifyListeners();
-  }
-  
-  // Screenshot operations (from legacy screenshot items)
-  Future<void> addScreenshot({
-    required String path,
-    required DateTime date,
-    String caption = '',
-  }) async {
-    final screenshot = ScreenshotItem(
-      id: _uuid.v4(),
-      path: path,
-      date: date,
-      caption: caption,
-      createdAt: DateTime.now(),
-    );
-    await StorageService.addScreenshot(screenshot);
-    _screenshots = StorageService.getAllScreenshots();
-    notifyListeners();
-  }
-  
-  Future<void> deleteScreenshot(String id) async {
-    await StorageService.deleteScreenshot(id);
-    _screenshots = StorageService.getAllScreenshots();
-    notifyListeners();
-  }
-  
-  // Weekly Review operations
-  Future<void> addWeeklyReview({
-    required DateTime weekEnding,
-    String wentWell = '',
-    String challenges = '',
-    String nextWeekFocus = '',
-    List<String>? completedGoalIds,
-  }) async {
-    final review = WeeklyReview(
-      id: _uuid.v4(),
-      weekEnding: weekEnding,
-      wentWell: wentWell,
-      challenges: challenges,
-      nextWeekFocus: nextWeekFocus,
-      completedGoalIds: completedGoalIds,
-      createdAt: DateTime.now(),
-    );
-    await StorageService.addWeeklyReview(review);
-    _weeklyReviews = StorageService.getAllWeeklyReviews();
-    _badges = StorageService.getAllBadges();
-    _progress = StorageService.getUserProgress();
-    notifyListeners();
-  }
-  
-  // Statistics
-  Map<String, int> getMoodDistribution() {
-    return StorageService.getMoodDistribution();
-  }
-  
-  Map<int, int> getMonthlyActivity() {
-    return StorageService.getMonthlyActivity();
-  }
-  
-  int getMostActiveMonth() {
-    return StorageService.getMostActiveMonth();
+    _updateHomeWidget();
   }
   
   // Stats getters - Now count real device media
   int get totalPhotos => _photos.length;
   int get totalVideos => _videos.length;
   int get totalDeviceScreenshots => _deviceScreenshots.length;
-  int get totalJournals => journals2025.length;
-  int get totalAchievements => achievements2025.length;
   int get totalGoals => _goals.length;
   int get totalHabits => _habits.length;
   
@@ -429,18 +337,13 @@ class AppProvider extends ChangeNotifier {
   }
   
   /// Clear ALL data and reset app to fresh state
-  /// Use this to remove all existing data before adding your own for testing
   Future<void> clearAllData() async {
     await StorageService.clearAllData();
     await MediaService.clearAllMedia();
     
     // Reset local lists
-    _journals = [];
     _goals = [];
     _habits = [];
-    _achievements = [];
-    _screenshots = [];
-    _weeklyReviews = [];
     _photos = [];
     _videos = [];
     _deviceScreenshots = [];
@@ -455,12 +358,8 @@ class AppProvider extends ChangeNotifier {
   /// Get counts of all data for display
   Map<String, int> getDataCounts() {
     return {
-      'journals': _journals.length,
       'goals': _goals.length,
       'habits': _habits.length,
-      'achievements': _achievements.length,
-      'screenshots': _screenshots.length,
-      'weeklyReviews': _weeklyReviews.length,
       'photos': _photos.length,
       'videos': _videos.length,
       'deviceScreenshots': _deviceScreenshots.length,

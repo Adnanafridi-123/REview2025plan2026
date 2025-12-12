@@ -257,10 +257,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Simple line chart visualization - EXACT from video
+              // Simple line chart visualization - Now with REAL data
               SizedBox(
                 height: 150,
-                child: _buildSimpleChart(),
+                child: _buildSimpleChart(provider),
               ),
             ],
           ),
@@ -269,9 +269,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildSimpleChart() {
+  Widget _buildSimpleChart(AppProvider provider) {
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final values = [30.0, 45.0, 35.0, 60.0, 50.0, 40.0, 55.0]; // Sample data
+    final values = _calculateWeeklyHabitCompletion(provider);
     
     return Column(
       children: [
@@ -300,9 +300,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               const SizedBox(width: 8),
               // Chart area
               Expanded(
-                child: CustomPaint(
-                  painter: _LineChartPainter(values, AppTheme.primaryTeal),
-                ),
+                child: values.every((v) => v == 0)
+                    ? Center(
+                        child: Text(
+                          'Complete habits to see progress',
+                          style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                        ),
+                      )
+                    : CustomPaint(
+                        painter: _LineChartPainter(values, AppTheme.primaryTeal),
+                      ),
               ),
             ],
           ),
@@ -418,6 +425,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final total = habits.length;
     final percentage = total > 0 ? (completedToday / total * 100).toInt() : 0;
     
+    // Calculate best and worst days from real data
+    final dayStats = _calculateDayStats(provider);
+    final bestDay = dayStats['best'] ?? 'N/A';
+    final worstDay = dayStats['worst'] ?? 'N/A';
+    
     return Column(
       children: [
         // Today's Completion - Donut chart (EXACT from video)
@@ -479,7 +491,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ),
         const SizedBox(height: 16),
         
-        // Best Day / Needs Work Row - EXACT from video
+        // Best Day / Needs Work Row - Now with REAL data
         Row(
           children: [
             Expanded(
@@ -487,7 +499,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 icon: Icons.thumb_up,
                 iconColor: AppTheme.primaryGreen,
                 label: 'Best Day',
-                value: 'Monday',
+                value: bestDay,
               ),
             ),
             const SizedBox(width: 12),
@@ -496,13 +508,89 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 icon: Icons.trending_down,
                 iconColor: Colors.red,
                 label: 'Needs Work',
-                value: 'Sunday',
+                value: worstDay,
               ),
             ),
           ],
         ),
       ],
     );
+  }
+
+  // Calculate weekly habit completion percentages for each day
+  List<double> _calculateWeeklyHabitCompletion(AppProvider provider) {
+    final habits = provider.habits;
+    if (habits.isEmpty) return List.filled(7, 0.0);
+    
+    final now = DateTime.now();
+    final values = <double>[];
+    
+    // Get last 7 days starting from Monday
+    final currentWeekday = now.weekday; // 1 = Monday, 7 = Sunday
+    final startOfWeek = now.subtract(Duration(days: currentWeekday - 1));
+    
+    for (int i = 0; i < 7; i++) {
+      final day = startOfWeek.add(Duration(days: i));
+      final dayStart = DateTime(day.year, day.month, day.day);
+      
+      int completedCount = 0;
+      for (var habit in habits) {
+        if (habit.isCompletedOnDate(dayStart)) {
+          completedCount++;
+        }
+      }
+      
+      final percentage = (completedCount / habits.length * 100).clamp(0.0, 100.0);
+      values.add(percentage);
+    }
+    
+    return values;
+  }
+
+  // Calculate best and worst days from habit data
+  Map<String, String> _calculateDayStats(AppProvider provider) {
+    final habits = provider.habits;
+    if (habits.isEmpty) return {'best': 'N/A', 'worst': 'N/A'};
+    
+    final dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    final dayCounts = List.filled(7, 0); // Index 0 = Monday
+    
+    // Count completions for each day of the week
+    for (var habit in habits) {
+      for (var date in habit.completionDates) {
+        final weekday = date.weekday - 1; // Convert to 0-indexed
+        if (weekday >= 0 && weekday < 7) {
+          dayCounts[weekday]++;
+        }
+      }
+    }
+    
+    // Find best and worst
+    int maxIndex = 0;
+    int minIndex = 0;
+    int maxCount = dayCounts[0];
+    int minCount = dayCounts[0];
+    bool hasAnyData = dayCounts.any((c) => c > 0);
+    
+    if (!hasAnyData) {
+      return {'best': 'N/A', 'worst': 'N/A'};
+    }
+    
+    for (int i = 1; i < 7; i++) {
+      if (dayCounts[i] > maxCount) {
+        maxCount = dayCounts[i];
+        maxIndex = i;
+      }
+      if (dayCounts[i] < minCount) {
+        minCount = dayCounts[i];
+        minIndex = i;
+      }
+    }
+    
+    return {
+      'best': dayNames[maxIndex],
+      'worst': dayNames[minIndex],
+    };
   }
 
   Widget _buildDayCard({

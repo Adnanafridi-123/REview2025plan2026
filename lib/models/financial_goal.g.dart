@@ -1,77 +1,74 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'goal.dart';
+part of 'financial_goal.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class GoalAdapter extends TypeAdapter<Goal> {
+class FinancialGoalAdapter extends TypeAdapter<FinancialGoal> {
   @override
-  final int typeId = 1;
+  final int typeId = 11;
 
   @override
-  Goal read(BinaryReader reader) {
+  FinancialGoal read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Goal(
+    return FinancialGoal(
       id: fields[0] as String,
       name: fields[1] as String,
-      category: fields[2] as String,
-      description: fields[3] as String? ?? '',
-      targetValue: fields[4] as double? ?? 100,
-      currentValue: fields[5] as double? ?? 0,
+      type: fields[2] as String,
+      targetAmount: fields[3] as double,
+      currentAmount: fields[4] as double,
+      currency: fields[5] as String,
       deadline: fields[6] as DateTime,
-      priority: fields[7] as String? ?? 'Medium',
-      milestones: (fields[8] as List?)?.cast<Milestone>() ?? [],
-      notes: fields[9] as String? ?? '',
-      isCompleted: fields[10] as bool? ?? false,
-      createdAt: fields[11] as DateTime,
+      priority: fields[7] as String,
+      notes: fields[8] as String,
+      transactions: (fields[9] as List?)?.cast<FinancialTransaction>(),
+      createdAt: fields[10] as DateTime,
+      isCompleted: fields[11] as bool,
       completedAt: fields[12] as DateTime?,
-      photos: (fields[13] as List?)?.cast<String>() ?? [],
-      reminderTime: fields[14] as String?,
-      reminderEnabled: fields[15] as bool? ?? false,
+      colorValue: fields[13] as int,
+      icon: fields[14] as String,
     );
   }
 
   @override
-  void write(BinaryWriter writer, Goal obj) {
+  void write(BinaryWriter writer, FinancialGoal obj) {
     writer
-      ..writeByte(16)
+      ..writeByte(15)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
       ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.category)
+      ..write(obj.type)
       ..writeByte(3)
-      ..write(obj.description)
+      ..write(obj.targetAmount)
       ..writeByte(4)
-      ..write(obj.targetValue)
+      ..write(obj.currentAmount)
       ..writeByte(5)
-      ..write(obj.currentValue)
+      ..write(obj.currency)
       ..writeByte(6)
       ..write(obj.deadline)
       ..writeByte(7)
       ..write(obj.priority)
       ..writeByte(8)
-      ..write(obj.milestones)
-      ..writeByte(9)
       ..write(obj.notes)
+      ..writeByte(9)
+      ..write(obj.transactions)
       ..writeByte(10)
-      ..write(obj.isCompleted)
-      ..writeByte(11)
       ..write(obj.createdAt)
+      ..writeByte(11)
+      ..write(obj.isCompleted)
       ..writeByte(12)
       ..write(obj.completedAt)
       ..writeByte(13)
-      ..write(obj.photos)
+      ..write(obj.colorValue)
       ..writeByte(14)
-      ..write(obj.reminderTime)
-      ..writeByte(15)
-      ..write(obj.reminderEnabled);
+      ..write(obj.icon);
   }
 
   @override
@@ -80,47 +77,44 @@ class GoalAdapter extends TypeAdapter<Goal> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is GoalAdapter &&
+      other is FinancialGoalAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
 
-class MilestoneAdapter extends TypeAdapter<Milestone> {
+class FinancialTransactionAdapter extends TypeAdapter<FinancialTransaction> {
   @override
-  final int typeId = 2;
+  final int typeId = 12;
 
   @override
-  Milestone read(BinaryReader reader) {
+  FinancialTransaction read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Milestone(
+    return FinancialTransaction(
       id: fields[0] as String,
-      title: fields[1] as String,
-      isCompleted: fields[2] as bool? ?? false,
-      completedAt: fields[3] as DateTime?,
-      dueDate: fields[4] as DateTime?,
-      description: fields[5] as String?,
+      amount: fields[1] as double,
+      type: fields[2] as String,
+      note: fields[3] as String,
+      date: fields[4] as DateTime,
     );
   }
 
   @override
-  void write(BinaryWriter writer, Milestone obj) {
+  void write(BinaryWriter writer, FinancialTransaction obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.title)
+      ..write(obj.amount)
       ..writeByte(2)
-      ..write(obj.isCompleted)
+      ..write(obj.type)
       ..writeByte(3)
-      ..write(obj.completedAt)
+      ..write(obj.note)
       ..writeByte(4)
-      ..write(obj.dueDate)
-      ..writeByte(5)
-      ..write(obj.description);
+      ..write(obj.date);
   }
 
   @override
@@ -129,7 +123,7 @@ class MilestoneAdapter extends TypeAdapter<Milestone> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is MilestoneAdapter &&
+      other is FinancialTransactionAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

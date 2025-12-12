@@ -5,8 +5,10 @@ import 'goals_dashboard_screen.dart';
 import 'habit_tracker_screen.dart';
 import 'calendar_screen.dart';
 import 'analytics_screen.dart';
-import 'badges_screen.dart';
-import 'weekly_review_screen.dart';
+import 'vision_board_screen.dart';
+import 'financial_planner_screen.dart';
+import 'health_tracker_screen.dart';
+import 'reminder_settings_screen.dart';
 
 class PlanMenuScreen extends StatelessWidget {
   const PlanMenuScreen({super.key});
@@ -47,8 +49,7 @@ class PlanMenuScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
                     
-                    // 6 Menu Cards - EXACT from video
-                    // 1. Goals
+                    // 1. Goals - Core Feature
                     _PlanMenuCard(
                       icon: Icons.gps_fixed,
                       title: 'Goals',
@@ -56,7 +57,7 @@ class PlanMenuScreen extends StatelessWidget {
                       gradient: AppTheme.goalsGradient,
                       onTap: () => _navigateTo(context, const GoalsDashboardScreen()),
                     ),
-                    // 2. Habits
+                    // 2. Habits - Core Feature
                     _PlanMenuCard(
                       icon: Icons.refresh,
                       title: 'Habits',
@@ -80,21 +81,37 @@ class PlanMenuScreen extends StatelessWidget {
                       gradient: AppTheme.analyticsGradient,
                       onTap: () => _navigateTo(context, const AnalyticsScreen()),
                     ),
-                    // 5. Badges
+                    // 5. Vision Board
                     _PlanMenuCard(
-                      icon: Icons.workspace_premium,
-                      title: 'Badges',
-                      subtitle: 'Earn rewards',
-                      gradient: AppTheme.badgesGradient,
-                      onTap: () => _navigateTo(context, const BadgesScreen()),
+                      icon: Icons.dashboard_customize,
+                      title: 'Vision Board',
+                      subtitle: 'Visualize your dreams',
+                      gradient: const LinearGradient(colors: [Color(0xFF667eea), Color(0xFF764ba2)]),
+                      onTap: () => _navigateTo(context, const VisionBoardScreen()),
                     ),
-                    // 6. Weekly Review
+                    // 6. Financial Planner
                     _PlanMenuCard(
-                      icon: Icons.rate_review,
-                      title: 'Weekly Review',
-                      subtitle: 'Reflect and plan ahead',
-                      gradient: AppTheme.weeklyReviewGradient,
-                      onTap: () => _navigateTo(context, const WeeklyReviewScreen()),
+                      icon: Icons.account_balance_wallet,
+                      title: 'Financial Planner',
+                      subtitle: 'Plan your financial future',
+                      gradient: const LinearGradient(colors: [Color(0xFF56ab2f), Color(0xFFa8e063)]),
+                      onTap: () => _navigateTo(context, const FinancialPlannerScreen()),
+                    ),
+                    // 7. Health Tracker
+                    _PlanMenuCard(
+                      icon: Icons.favorite,
+                      title: 'Health Tracker',
+                      subtitle: 'Track wellness goals',
+                      gradient: const LinearGradient(colors: [Color(0xFF11998e), Color(0xFF38ef7d)]),
+                      onTap: () => _navigateTo(context, const HealthTrackerScreen()),
+                    ),
+                    // 8. Reminder Settings - Alarms & Notifications
+                    _PlanMenuCard(
+                      icon: Icons.alarm,
+                      title: 'Reminders & Alarms',
+                      subtitle: 'Set up notifications for all features',
+                      gradient: const LinearGradient(colors: [Color(0xFFFFD700), Color(0xFFFFA500)]),
+                      onTap: () => _navigateTo(context, const ReminderSettingsScreen()),
                     ),
                     const SizedBox(height: 20),
                   ],

@@ -2,11 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_theme.dart';
 import '../providers/app_provider.dart';
+import '../providers/media_cache_provider.dart';
 import 'review_2025/review_menu_screen.dart';
 import 'plan_2026/plan_menu_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final MediaCacheProvider _mediaCache = MediaCacheProvider();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRealData();
+  }
+
+  Future<void> _loadRealData() async {
+    await _mediaCache.loadPhotos();
+    await _mediaCache.loadVideos();
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,113 +50,129 @@ class HomeScreen extends StatelessWidget {
                   : AppTheme.backgroundGradient,
             ),
             child: SafeArea(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top Header Row with Dark/Light Mode Toggle
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Your 2025',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withValues(alpha: 0.7),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ===== FIXED HEADER (Not scrollable) =====
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top Header Row with Dark/Light Mode Toggle
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Your 2025',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
                             ),
-                          ),
-                          // Dark/Light Mode Toggle Button
-                          GestureDetector(
-                            onTap: () => provider.toggleDarkMode(),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isDarkMode 
-                                    ? const Color(0xFFFFD700).withValues(alpha: 0.2)
-                                    : Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(25),
-                                border: Border.all(
+                            // Dark/Light Mode Toggle Button
+                            GestureDetector(
+                              onTap: () => provider.toggleDarkMode(),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
                                   color: isDarkMode 
-                                      ? const Color(0xFFFFD700).withValues(alpha: 0.5)
-                                      : Colors.white.withValues(alpha: 0.3),
-                                  width: 1.5,
+                                      ? const Color(0xFFFFD700).withValues(alpha: 0.2)
+                                      : Colors.white.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(25),
+                                  border: Border.all(
+                                    color: isDarkMode 
+                                        ? const Color(0xFFFFD700).withValues(alpha: 0.5)
+                                        : Colors.white.withValues(alpha: 0.3),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isDarkMode 
+                                          ? Icons.light_mode 
+                                          : Icons.dark_mode,
+                                      color: isDarkMode 
+                                          ? const Color(0xFFFFD700) 
+                                          : Colors.white,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      isDarkMode ? 'Light' : 'Dark',
+                                      style: TextStyle(
+                                        color: isDarkMode 
+                                            ? const Color(0xFFFFD700)
+                                            : Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    isDarkMode 
-                                        ? Icons.light_mode 
-                                        : Icons.dark_mode,
-                                    color: isDarkMode 
-                                        ? const Color(0xFFFFD700) 
-                                        : Colors.white,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    isDarkMode ? 'Light' : 'Dark',
-                                    style: TextStyle(
-                                      color: isDarkMode 
-                                          ? const Color(0xFFFFD700)
-                                          : Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Main Title - App Name (FIXED - won't scroll)
+                        Text(
+                          'Review 2025',
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? const Color(0xFFFFD700) : AppTheme.textYellow,
                           ),
+                        ),
+                        const Text(
+                          '& Plan 2026',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Subtitle
+                        Text(
+                          'Reflect on your memories & plan your future',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // ===== SCROLLABLE CONTENT =====
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Review 2025 Card
+                          _buildReview2025Card(context, isDarkMode),
+                          const SizedBox(height: 16),
+                          
+                          // Plan 2026 Card
+                          _buildPlan2026Card(context, isDarkMode),
+                          const SizedBox(height: 24),
+                          
+                          // Quick Stats Section - Real Data
+                          _buildQuickStatsSection(context, isDarkMode, provider),
+                          const SizedBox(height: 20),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      // Main Title - App Name
-                      Text(
-                        'Review 2025',
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: isDarkMode ? const Color(0xFFFFD700) : AppTheme.textYellow,
-                        ),
-                      ),
-                      const Text(
-                        '& Plan 2026',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      // Subtitle
-                      Text(
-                        'Reflect on your memories & plan your future',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // Review 2025 Card - Large rectangular card
-                      _buildReview2025Card(context, isDarkMode),
-                      const SizedBox(height: 16),
-                      
-                      // Plan 2026 Card - Large rectangular card
-                      _buildPlan2026Card(context, isDarkMode),
-                      const SizedBox(height: 24),
-                      
-                      // Quick Stats Section
-                      _buildQuickStatsSection(context, isDarkMode),
-                      const SizedBox(height: 20),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
@@ -330,8 +369,14 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Quick Stats Section - 2x2 Grid
-  Widget _buildQuickStatsSection(BuildContext context, bool isDarkMode) {
+  // Quick Stats Section - 2x2 Grid with REAL DATA
+  Widget _buildQuickStatsSection(BuildContext context, bool isDarkMode, AppProvider provider) {
+    // Use real data from MediaCacheProvider
+    final realPhotos = _mediaCache.totalPhotos;
+    final realVideos = _mediaCache.totalVideos;
+    final habitsCount = provider.totalHabits;
+    final goalsCount = provider.totalGoals;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -350,11 +395,21 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
-                Icon(
-                  Icons.info_outline,
-                  color: Colors.white.withValues(alpha: 0.6),
-                  size: 18,
-                ),
+                if (_isLoading)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.greenAccent.withValues(alpha: 0.8),
+                    size: 18,
+                  ),
               ],
             ),
             // Year Badge
@@ -377,63 +432,59 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         
-        // Stats Grid - 2x2
-        Consumer<AppProvider>(
-          builder: (context, provider, _) {
-            return Column(
+        // Stats Grid - 2x2 with REAL DATA
+        Column(
+          children: [
+            // First Row - Photos & Videos (Real from Gallery)
+            Row(
               children: [
-                // First Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: _QuickStatCard(
-                        icon: Icons.photo_library,
-                        iconColor: const Color(0xFFFF7B9C),
-                        label: 'Photos',
-                        count: provider.totalPhotos,
-                        isDarkMode: isDarkMode,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _QuickStatCard(
-                        icon: Icons.videocam,
-                        iconColor: const Color(0xFF4ECDC4),
-                        label: 'Videos',
-                        count: provider.totalVideos,
-                        isDarkMode: isDarkMode,
-                      ),
-                    ),
-                  ],
+                Expanded(
+                  child: _QuickStatCard(
+                    icon: Icons.photo_library,
+                    iconColor: const Color(0xFFFF7B9C),
+                    label: 'Photos',
+                    count: realPhotos,
+                    isDarkMode: isDarkMode,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                // Second Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: _QuickStatCard(
-                        icon: Icons.note_alt,
-                        iconColor: const Color(0xFFFF9F43),
-                        label: 'Journal',
-                        count: provider.totalJournals,
-                        isDarkMode: isDarkMode,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _QuickStatCard(
-                        icon: Icons.emoji_events,
-                        iconColor: const Color(0xFF26DE81),
-                        label: 'Achievements',
-                        count: provider.totalAchievements,
-                        isDarkMode: isDarkMode,
-                      ),
-                    ),
-                  ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _QuickStatCard(
+                    icon: Icons.videocam,
+                    iconColor: const Color(0xFF4ECDC4),
+                    label: 'Videos',
+                    count: realVideos,
+                    isDarkMode: isDarkMode,
+                  ),
                 ),
               ],
-            );
-          },
+            ),
+            const SizedBox(height: 12),
+            // Second Row - Journal & Goals (Real from App)
+            Row(
+              children: [
+                Expanded(
+                  child: _QuickStatCard(
+                    icon: Icons.refresh,
+                    iconColor: const Color(0xFFFF9F43),
+                    label: 'Habits',
+                    count: habitsCount,
+                    isDarkMode: isDarkMode,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _QuickStatCard(
+                    icon: Icons.flag,
+                    iconColor: const Color(0xFF26DE81),
+                    label: 'Goals',
+                    count: goalsCount,
+                    isDarkMode: isDarkMode,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ],
     );

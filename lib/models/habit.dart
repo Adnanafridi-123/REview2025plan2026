@@ -30,6 +30,9 @@ class Habit extends HiveObject {
   
   @HiveField(8)
   bool isActive;
+  
+  @HiveField(9)
+  String category; // Health, Work, Study, Personal, Fitness
 
   Habit({
     required this.id,
@@ -41,6 +44,7 @@ class Habit extends HiveObject {
     this.reminderTime,
     required this.createdAt,
     this.isActive = true,
+    this.category = 'Personal',
   }) : completionDates = completionDates ?? [];
   
   bool isCompletedToday() {
@@ -131,6 +135,7 @@ class Habit extends HiveObject {
     String? reminderTime,
     DateTime? createdAt,
     bool? isActive,
+    String? category,
   }) {
     return Habit(
       id: id ?? this.id,
@@ -142,10 +147,31 @@ class Habit extends HiveObject {
       reminderTime: reminderTime ?? this.reminderTime,
       createdAt: createdAt ?? this.createdAt,
       isActive: isActive ?? this.isActive,
+      category: category ?? this.category,
     );
   }
 }
 
 class HabitFrequency {
   static const List<String> frequencies = ['Daily', 'Weekly'];
+}
+
+class HabitCategory {
+  static const List<String> categories = ['Health', 'Work', 'Study', 'Personal', 'Fitness'];
+  
+  static const Map<String, int> categoryColors = {
+    'Health': 0xFF4CAF50,
+    'Work': 0xFF2196F3,
+    'Study': 0xFF9C27B0,
+    'Personal': 0xFFFF9800,
+    'Fitness': 0xFFE91E63,
+  };
+  
+  static const Map<String, String> categoryIcons = {
+    'Health': '❤️',
+    'Work': '💼',
+    'Study': '📚',
+    'Personal': '🎯',
+    'Fitness': '💪',
+  };
 }

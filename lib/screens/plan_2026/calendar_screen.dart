@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/app_theme.dart';
+import '../../models/habit.dart';
+import 'goal_detail_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -189,6 +191,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildCalendarGrid() {
+    final provider = context.read<AppProvider>();
     final firstDayOfMonth = DateTime(_focusedDay.year, _focusedDay.month, 1);
     final lastDayOfMonth = DateTime(_focusedDay.year, _focusedDay.month + 1, 0);
     
@@ -212,7 +215,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               int dayNumber = cellIndex - leadingEmptyCells + 1;
               
               if (cellIndex < leadingEmptyCells || dayNumber > totalDays) {
-                return const SizedBox(width: 40, height: 40);
+                return const SizedBox(width: 40, height: 48);
               }
               
               final date = DateTime(_focusedDay.year, _focusedDay.month, dayNumber);
@@ -224,37 +227,70 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   date.month == DateTime.now().month &&
                   date.day == DateTime.now().day;
               
+              // Check if any goal has deadline on this date
+              final goalsOnDay = provider.goals.where((g) =>
+                  g.deadline.year == date.year &&
+                  g.deadline.month == date.month &&
+                  g.deadline.day == date.day).toList();
+              final hasGoalDeadline = goalsOnDay.isNotEmpty;
+              
               return GestureDetector(
                 onTap: () {
                   setState(() {
                     _selectedDay = date;
                   });
                 },
-                child: Container(
+                child: SizedBox(
                   width: 40,
-                  height: 40,
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppTheme.primaryOrange
-                        : isToday
-                            ? AppTheme.primaryOrange.withValues(alpha: 0.2)
-                            : Colors.transparent,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      dayNumber.toString(),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
-                        color: isSelected
-                            ? Colors.white
-                            : isToday
-                                ? AppTheme.primaryOrange
-                                : const Color(0xFF2D3436),
+                  height: 48,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppTheme.primaryOrange
+                              : isToday
+                                  ? AppTheme.primaryOrange.withValues(alpha: 0.2)
+                                  : Colors.transparent,
+                          shape: BoxShape.circle,
+                          border: hasGoalDeadline && !isSelected
+                              ? Border.all(color: AppTheme.primaryPurple, width: 2)
+                              : null,
+                        ),
+                        child: Center(
+                          child: Text(
+                            dayNumber.toString(),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isSelected || isToday || hasGoalDeadline ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected
+                                  ? Colors.white
+                                  : isToday
+                                      ? AppTheme.primaryOrange
+                                      : hasGoalDeadline
+                                          ? AppTheme.primaryPurple
+                                          : const Color(0xFF2D3436),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      // Goal indicator dot
+                      if (hasGoalDeadline)
+                        Container(
+                          width: 6,
+                          height: 6,
+                          margin: const EdgeInsets.only(top: 2),
+                          decoration: const BoxDecoration(
+                            color: AppTheme.primaryPurple,
+                            shape: BoxShape.circle,
+                          ),
+                        )
+                      else
+                        const SizedBox(height: 8),
+                    ],
                   ),
                 ),
               );
@@ -265,7 +301,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  // Day Details Bottom Sheet - EXACT from video
+  // Day Details with Goals and Habits
   Widget _buildDayDetails(AppProvider provider) {
     final dayNumber = _selectedDay!.day;
     final weekday = DateFormat('EEEE').format(_selectedDay!);
@@ -273,6 +309,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     
     // Get habits for this day
     final habitsForDay = provider.habits;
+    
+    // Get goals with deadline on this day
+    final goalsOnDay = provider.goals.where((g) =>
+        g.deadline.year == _selectedDay!.year &&
+        g.deadline.month == _selectedDay!.month &&
+        g.deadline.day == _selectedDay!.day).toList();
     
     return Container(
       padding: const EdgeInsets.all(20),
@@ -290,7 +332,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Date Header - EXACT from video
+          // Date Header
           Row(
             children: [
               Text(
@@ -326,14 +368,170 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
           const SizedBox(height: 20),
           
-          // Daily Habits Section - EXACT from video
-          const Text(
-            'Daily Habits',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2D3436),
+          // Goal Deadlines Section (NEW)
+          if (goalsOnDay.isNotEmpty) ...[
+            Row(
+              children: [
+                const Icon(Icons.flag, color: AppTheme.primaryPurple, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Goal Deadlines',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2D3436),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryPurple.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${goalsOnDay.length} goal${goalsOnDay.length > 1 ? 's' : ''}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryPurple,
+                    ),
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 12),
+            ...goalsOnDay.map((goal) {
+              final categoryColor = AppTheme.categoryColors[goal.category] ?? AppTheme.primaryPurple;
+              final daysLeft = goal.deadline.difference(DateTime.now()).inDays;
+              
+              return GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => GoalDetailScreen(goal: goal)),
+                ),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        categoryColor.withValues(alpha: 0.15),
+                        categoryColor.withValues(alpha: 0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: categoryColor.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      // Progress circle
+                      SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Stack(
+                          children: [
+                            CircularProgressIndicator(
+                              value: goal.progress / 100,
+                              strokeWidth: 4,
+                              backgroundColor: Colors.grey[200],
+                              valueColor: AlwaysStoppedAnimation(categoryColor),
+                            ),
+                            Center(
+                              child: Text(
+                                '${goal.progress.toInt()}%',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: categoryColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              goal.name,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF2D3436),
+                                decoration: goal.isCompleted ? TextDecoration.lineThrough : null,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: categoryColor.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    goal.category,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: categoryColor,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  daysLeft < 0 ? Icons.warning : Icons.schedule,
+                                  size: 14,
+                                  color: daysLeft < 0 ? Colors.red : Colors.grey[500],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  daysLeft < 0 
+                                      ? 'Overdue' 
+                                      : daysLeft == 0 
+                                          ? 'Due today!' 
+                                          : '$daysLeft days left',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: daysLeft < 0 ? Colors.red : Colors.grey[600],
+                                    fontWeight: daysLeft <= 0 ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        goal.isCompleted ? Icons.check_circle : Icons.chevron_right,
+                        color: goal.isCompleted ? AppTheme.primaryGreen : Colors.grey[400],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 16),
+          ],
+          
+          // Daily Habits Section
+          Row(
+            children: [
+              Icon(Icons.repeat, color: AppTheme.primaryGreen, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Daily Habits',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D3436),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           
@@ -364,47 +562,65 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   d.year == _selectedDay!.year &&
                   d.month == _selectedDay!.month &&
                   d.day == _selectedDay!.day);
+              final categoryColor = Color(HabitCategory.categoryColors[habit.category] ?? 0xFF4CAF50);
+              final categoryIcon = HabitCategory.categoryIcons[habit.category] ?? '🎯';
               
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: isCompleted
-                      ? const Color(0xFF00C853).withValues(alpha: 0.1)
+                      ? categoryColor.withValues(alpha: 0.1)
                       : Colors.grey[50],
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isCompleted
-                        ? const Color(0xFF00C853).withValues(alpha: 0.3)
+                        ? categoryColor.withValues(alpha: 0.3)
                         : Colors.grey[200]!,
                   ),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      isCompleted ? Icons.check_circle : Icons.circle_outlined,
-                      color: isCompleted ? const Color(0xFF00C853) : Colors.grey[400],
-                      size: 22,
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isCompleted ? categoryColor : categoryColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: isCompleted
+                          ? const Icon(Icons.check, color: Colors.white, size: 20)
+                          : Center(child: Text(categoryIcon, style: const TextStyle(fontSize: 16))),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        habit.name,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF2D3436),
-                          decoration: isCompleted
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            habit.name,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF2D3436),
+                              decoration: isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+                            ),
+                          ),
+                          Text(
+                            habit.category,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: categoryColor,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     if (isCompleted)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00C853),
+                          color: categoryColor,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
